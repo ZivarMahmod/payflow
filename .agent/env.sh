@@ -2,11 +2,14 @@
 # Environment setup for agent git operations.
 # Source this at start of every scheduled run before any git command.
 #
-#   source /sessions/confident-focused-cannon/mnt/payflow/.agent/env.sh
+#   source /path/to/payflow/.agent/env.sh
+
+# Derive mount path from this file's location (survives session-name changes).
+_ENV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PAYFLOW_MOUNT="$(dirname "$_ENV_DIR")"
 
 # The mount has Windows filesystem restrictions — git metadata lives outside it.
 # Sandbox session dirs don't persist, so GIT_DIR is reinitialized each run from origin.
-export PAYFLOW_MOUNT="/sessions/confident-focused-cannon/mnt/payflow"
 export PAYFLOW_GITDIR="/tmp/payflow-git"
 export GIT_DIR="$PAYFLOW_GITDIR/.git"
 export GIT_WORK_TREE="$PAYFLOW_MOUNT"
