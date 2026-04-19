@@ -40,3 +40,7 @@ coverage/
 # Supabase local
 supabase/.branches
 supabase/.temp
+
+# pnpm/Windows-mount transients (cannot be unlinked from sandbox)
+_tmp_*
+.symlink-test

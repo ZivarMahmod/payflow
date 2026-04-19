@@ -1,0 +1,31 @@
+{
+  "name": "flowpay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FlowPay — QR-based pay-at-table for Swedish restaurants. Sits on top of existing POS systems.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "biome format --write .",
+    "check": "biome check --write .",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "@biomejs/biome": "^1.9.4",
+    "typescript": "^5.7.2"
+  },
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZivarMahmod/payflow.git"
+  }
+}

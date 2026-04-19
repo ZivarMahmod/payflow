@@ -1,0 +1,55 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalEnv": [
+    "NODE_ENV",
+    "USE_MOCK_ONSLIP",
+    "USE_MOCK_CASPECO",
+    "USE_MOCK_SWISH",
+    "USE_MOCK_STRIPE",
+    "USE_MOCK_GOOGLE",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "SWISH_CERT_PATH",
+    "SWISH_KEY_PATH",
+    "SWISH_MERCHANT_NUMBER",
+    "ONSLIP_API_KEY",
+    "CASPECO_CLIENT_ID",
+    "CASPECO_CLIENT_SECRET"
+  ],
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "**/.env",
+    "**/.env.*"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "inputs": ["src/**", "test/**", "tests/**", "**/*.test.*", "**/*.spec.*"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

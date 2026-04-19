@@ -31,4 +31,28 @@ Se `briefs/blocked/` för aktiva block.
 
 ## Kör lokalt
 
-Instruktioner läggs till av IN-001 (monorepo setup). Tills dess: tomt skal.
+### Förutsättningar
+- Node.js 20+
+- pnpm 10+ (`npm install -g pnpm`)
+
+### Setup
+```bash
+pnpm install
+```
+
+### Vanliga kommandon
+```bash
+pnpm dev        # Starta alla apps i dev-läge
+pnpm build      # Bygg alla paket
+pnpm lint       # Linta alla paket
+pnpm typecheck  # TypeScript-check
+pnpm test       # Kör tester
+pnpm clean      # Rensa build-artefakter + node_modules
+```
+
+### Monorepo-layout
+- `apps/` — frontend-/backend-applikationer (guest PWA, admin, API).
+- `packages/` — delade paket (types, UI, utils, adapters).
+
+Turbo-pipelines är definierade i `turbo.json`.
+
