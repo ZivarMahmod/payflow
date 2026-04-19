@@ -10,12 +10,19 @@ MSG="${1:-Agent work-in-progress}"
 
 git add -A
 if git diff --cached --quiet; then
-  echo "Nothing to commit."
-  exit 0
+  echo "Nothing to commit (working tree matches HEAD)."
+else
+  git commit -m "$MSG"
+  echo "Committed: $(git rev-parse HEAD)"
 fi
 
-git commit -m "$MSG"
-echo "Committed: $(git rev-parse HEAD)"
+# Always try to push — there may be unpushed commits from previous runs.
+AHEAD=$(git rev-list --count origin/main..main 2>/dev/null || echo "?")
+if [ "$AHEAD" = "0" ]; then
+  echo "Already in sync with origin/main."
+  exit 0
+fi
+echo "$AHEAD commits to push."
 
 if [ -z "$GITHUB_PAT" ]; then
   echo "WARN: GITHUB_PAT not set — skipping push. Commit is local only."
