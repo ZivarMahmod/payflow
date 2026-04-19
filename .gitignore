@@ -1,0 +1,39 @@
+# Source packs (kept locally as reference, not pushed)
+FlowPay-Cowork-Pack/
+FlowPay-Briefs-v2/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+.next/
+.turbo/
+out/
+*.tsbuildinfo
+
+# Env files (all secrets)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Supabase local
+supabase/.branches
+supabase/.temp
