@@ -10,11 +10,20 @@
 Alla paths nedan är relativa till workspace-roten `payflow/`.
 `cd` dit först: `cd /sessions/confident-focused-cannon/mnt/payflow`.
 
-Innan du läser state: `git pull --ff-only origin main` för att hämta eventuella
-manuella commits från Zivar. Om pull misslyckas pga konflikt → stoppa, skapa
-`/STATUS-GIT-CONFLICT.md`, avsluta körningen.
+**Viktigt:** Windows-mount har begränsningar. Git-metadata ligger utanför
+mount-punkten. Sandbox-sessioner persisterar inte mellan schemalagda körningar
+så GIT_DIR reinitialiseras från `origin` varje körning.
 
-Om `/PAUSE.md` finns → skriv status-fil, avsluta körningen direkt.
+Obligatorisk start varje körning:
+```bash
+cd /sessions/confident-focused-cannon/mnt/payflow
+source .agent/env.sh          # GIT_DIR, GIT_WORK_TREE, PAT
+bash .agent/setup-git.sh      # init/update GIT_DIR, pull origin/main
+```
+Om `setup-git.sh` rapporterar att `GITHUB_PAT` saknas eller pull misslyckas
+pga konflikt → stoppa, skapa `STATUS-GIT-CONFLICT.md`, avsluta körningen.
+
+Om `PAUSE.md` finns → skriv status-fil, avsluta körningen direkt.
 
 ## Steg 1 — Sanity check (snabb)
 
@@ -72,11 +81,10 @@ För vald brief:
 3. Implementera enligt Steg-listan i briefen.
 4. Kör ALLA Verifiering-checks. Inte valfritt. Om en check fel: försök laga.
    Om >30 min försök utan framsteg → se "Fastnat mitt i brief" nedan.
-5. `git add . && git commit -m "<meddelandet från briefen>"`
-6. `git push origin main` — push efter varje klar brief. Vid fel
-   (auth, non-fast-forward): logga felet i status-filen, fortsätt arbetet.
-   Nästa körning försöker pull+push igen.
-7. Skapa `briefs/done/BRIEF-XXX-NNN.done.md` med:
+5. `bash .agent/commit-push.sh "<meddelandet från briefen>"` — handterar
+   `git add -A && git commit && git push` åt dig. Vid fel (auth, non-fast-forward):
+   logga i status-filen, fortsätt arbetet — nästa körning försöker pull+push igen.
+6. Skapa `briefs/done/BRIEF-XXX-NNN.done.md` med:
 
 ```markdown
 # BRIEF-XXX-NNN — <titel> — DONE

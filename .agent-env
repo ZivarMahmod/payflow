@@ -1,0 +1,2 @@
+# DEPRECATED — use .agent/env.sh instead
+source "$(dirname "${BASH_SOURCE[0]}")/.agent/env.sh"

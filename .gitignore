@@ -1,3 +1,6 @@
+# Agent secrets (PAT etc.) — never commit
+.agent/secrets.env
+
 # Source packs (kept locally as reference, not pushed)
 FlowPay-Cowork-Pack/
 FlowPay-Briefs-v2/
