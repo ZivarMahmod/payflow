@@ -76,15 +76,35 @@ Första körningen varje dag: läs `COWORK-CHARTER.md` i sin helhet.
 
 För vald brief:
 
-1. Läs HELA briefen (inte bara Steg-listan).
+1. Läs HELA briefen (inte bara Steg-listan). Notera tier-emojin.
 2. Dubbelkolla att alla `Beror på:`-briefs är i `/briefs/done/`.
 3. Implementera enligt Steg-listan i briefen.
-4. Kör ALLA Verifiering-checks. Inte valfritt. Om en check fel: försök laga.
-   Om >30 min försök utan framsteg → se "Fastnat mitt i brief" nedan.
-5. `bash .agent/commit-push.sh "<meddelandet från briefen>"` — handterar
-   `git add -A && git commit && git push` åt dig. Vid fel (auth, non-fast-forward):
+
+4. **Obligatoriska kvalitetsgrindar innan commit** (minska errors på riktigt):
+   a. **Typecheck:** `pnpm typecheck` om TS-kod finns. Måste vara 0 fel.
+   b. **Lint:** `pnpm lint` om apps/packages finns. Inga errors. Warnings OK.
+   c. **Tester:** `pnpm test` om briefen har skrivit/ändrat tester. Grön.
+   d. **Manuell verifiering:** ALLA checkboxes i briefens `Verifiering`-sektion.
+      Inte valfritt. Om en check fallerar: laga. Om >30 min utan framsteg →
+      "Fastnat mitt i brief" nedan.
+
+5. **För 🔴/⚫-briefs även:** invokera `engineering:code-review` skill på
+   staged diff innan commit. Åtgärda alla "critical" och "high"-fynd. Övriga
+   kommentarer → notera i `.done.md` under "Kodgranskning".
+
+6. **Stora briefs som spänner över flera körningar:**
+   - Gör inkrementella WIP-commits under arbetet:
+     `bash .agent/commit-push.sh "WIP: BRIEF-XXX-NNN — <delsteg>"`.
+   - Kod får INTE vara trasig i dessa WIP-commits (ska åtminstone typechecka).
+   - Den slutliga commiten använder briefens exakta commit-meddelande.
+   - Skapa `.done.md` ENDAST när alla verifieringar är gröna. Annars lämnar du
+     brief pågående och status-filen förklarar vad som återstår.
+
+7. `bash .agent/commit-push.sh "<meddelandet från briefen>"` — final commit
+   efter att alla grindar passerat. Vid push-fel (auth, non-fast-forward):
    logga i status-filen, fortsätt arbetet — nästa körning försöker pull+push igen.
-6. Skapa `briefs/done/BRIEF-XXX-NNN.done.md` med:
+
+8. Skapa `briefs/done/BRIEF-XXX-NNN.done.md` med:
 
 ```markdown
 # BRIEF-XXX-NNN — <titel> — DONE
@@ -119,9 +139,29 @@ API-005, POS-002, SA-001) får ta flera körningar — använd `.done.md` som
 checkpoint bara när verifiering passerar, annars lämna brief i pågående
 läge och dokumentera framsteg i status-filen.
 
-Tumregel:
-- Fortfarande >50% context + brief klar med verifiering grön → ta nästa brief.
-- <50% context eller brief halv-klar → avsluta körning snyggt (Steg 6).
+**Kontext-tumregler (försiktig sida — Zivar prioriterar säkerhet över hastighet):**
+- Vid >60% context kvar + brief klar med verifiering grön → ta nästa brief,
+  MEN bara om den är 🟢 eller 🟡. 🔴/⚫ får alltid fresh körning.
+- Vid 40-60% context → avsluta körningen snyggt oavsett läge.
+- Vid <40% context mitt i brief → gör en WIP-commit (typecheckad) och avsluta.
+  Nästa körning fortsätter med färskt context. Better safe than sorry.
+- Aldrig: pressa igenom en 🔴 brief på slutet av en körning med lite context
+  kvar. Dåliga verifieringar leder till bugs som kostar mer senare.
+
+**Metodisk mindset (från Zivar direkt):**
+Det är OK att schemat tar sin tid. Fel i tidiga briefs kaskaderar nedåt.
+Använd vilka skills/tools som helper (engineering:debug när du fastnar,
+engineering:testing-strategy för test-design, data:sql-queries för komplex SQL).
+Finish big jobs properly även om det tar 3-4 körningar. Pausa hellre än att
+rusha.
+
+**Context-disciplin (OBLIGATORISKT för 🔴/⚫ briefs):**
+Läs `CONTEXT-DISCIPLINE.md` innan stora briefs. Kort version:
+- Skriv ett script som emitar svaret istället för att läsa 10 filer manuellt.
+- Pipa tung output (pnpm install, test-runs) till fil, läs bara tail/grep.
+- Använd Glob/Grep/Read med offset för targeted reads, inte full-fil-läsning.
+- Vid context-bloat: WIP-committa, skriv status, avsluta körning, låt nästa
+  fortsätta fresh.
 
 ---
 
