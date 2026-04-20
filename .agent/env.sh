@@ -10,7 +10,9 @@ export PAYFLOW_MOUNT="$(dirname "$_ENV_DIR")"
 
 # The mount has Windows filesystem restrictions — git metadata lives outside it.
 # Sandbox session dirs don't persist, so GIT_DIR is reinitialized each run from origin.
-export PAYFLOW_GITDIR="/tmp/payflow-git"
+# Use $HOME (session-specific) instead of /tmp to avoid cross-session permission
+# conflicts when different sandbox users leave stale objects in /tmp.
+export PAYFLOW_GITDIR="${HOME:-/tmp}/payflow-git"
 export GIT_DIR="$PAYFLOW_GITDIR/.git"
 export GIT_WORK_TREE="$PAYFLOW_MOUNT"
 
