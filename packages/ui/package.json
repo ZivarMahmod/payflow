@@ -1,0 +1,54 @@
+{
+  "name": "@flowpay/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FlowPay design system — tokens, Tailwind v4 config, and base components.",
+  "type": "module",
+  "sideEffects": [
+    "./src/tokens.css",
+    "./dist/tokens.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./showcase": {
+      "types": "./src/showcase.tsx",
+      "default": "./src/showcase.tsx"
+    },
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind.config": {
+      "types": "./tailwind.config.ts",
+      "default": "./tailwind.config.ts"
+    }
+  },
+  "files": [
+    "src",
+    "tailwind.config.ts"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint src",
+    "clean": "rm -rf .turbo dist"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "tailwindcss": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": false },
+    "tailwindcss": { "optional": false }
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "react": "^19.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2"
+  }
+}
