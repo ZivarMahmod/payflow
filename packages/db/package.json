@@ -1,0 +1,21 @@
+{
+  "name": "@flowpay/db",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FlowPay Supabase Cloud dev setup and migrations. Cloud-first — no local Docker.",
+  "scripts": {
+    "db:push": "supabase db push",
+    "db:pull": "supabase db pull",
+    "db:diff": "supabase db diff",
+    "db:link": "supabase link --project-ref nhpmaxtdxkzbauqbkbdk",
+    "db:status": "supabase projects list",
+    "typecheck": "echo 'no TS in @flowpay/db yet' && exit 0",
+    "lint": "echo 'no lint targets' && exit 0",
+    "test": "echo 'no tests' && exit 0",
+    "build": "echo 'nothing to build' && exit 0",
+    "clean": "rm -rf node_modules"
+  },
+  "devDependencies": {
+    "supabase": "^2.0.0"
+  }
+}

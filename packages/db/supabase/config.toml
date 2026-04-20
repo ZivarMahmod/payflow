@@ -1,0 +1,60 @@
+# FlowPay — Supabase config (cloud-first)
+#
+# Agent-scaffolded minimal config. Compatible with `supabase link`.
+# If you want the canonical default template from your local CLI, run:
+#   cd packages/db && npx supabase init --force
+# and re-set `project_id` below.
+
+project_id = "nhpmaxtdxkzbauqbkbdk"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Postgres major version used by Supabase Cloud project (flowpay-prod / eu-north-1).
+# Update if you upgrade the cloud project.
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[studio]
+enabled = false
+port = 54323
+
+[inbucket]
+enabled = false
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[edge_runtime]
+enabled = false
+policy = "oneshot"
+
+[analytics]
+enabled = false
