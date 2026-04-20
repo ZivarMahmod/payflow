@@ -1,0 +1,33 @@
+/**
+ * Guest PWA — Tailwind v4 entry.
+ *
+ * Order matters:
+ *  1. Import Tailwind (generates the utility layer).
+ *  2. Import FlowPay tokens (augments `@theme` with brand colors, radii, etc.).
+ *
+ * Components should ONLY reference token utilities (bg-paper, text-ink,
+ * ring-accent, rounded-lg, h-touch-md). No hex codes in TSX.
+ */
+
+@import "tailwindcss";
+@import "@flowpay/ui/tokens.css";
+
+/* App-level defaults: inherit tokens so root layout shells don't have to. */
+html {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Respect user's reduced-motion preference — framer-motion also honors this. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
