@@ -44,3 +44,7 @@ supabase/.temp
 # pnpm/Windows-mount transients (cannot be unlinked from sandbox)
 _tmp_*
 .symlink-test
+
+# Sandbox cruft accumulated during Cowork egress outages
+STATUS-GIT-CONFLICT*.md
+STATUS-ALL-BLOCKED*.md
