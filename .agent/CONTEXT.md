@@ -50,6 +50,26 @@
 
 ## Known gotchas
 
+### Egress is blocked to *.supabase.co (confirmed 2026-04-22)
+
+Cowork sandbox proxy returns `403 Host not in allowlist` for Supabase.
+See `STATUS-EGRESS-BLOCKED.md`.
+
+**This does NOT stop DB/API briefs from being processed.** Rule:
+
+1. **Write everything.** Complete all file-creation steps in the brief:
+   SQL migrations, TypeScript types (from schema, not from live DB —
+   author them by hand if needed), Fastify routes, React components.
+2. **Verify locally.** Run `pnpm typecheck`, `pnpm lint`, any pure unit tests.
+3. **Skip external verification.** `supabase db push`, `curl` against
+   Supabase, live API round-trips — document these as manual steps.
+4. **Mark as PREPARED, not SKIPPED.** See `SKIP-CONDITIONS.md` "When to
+   PREPARE instead of skip".
+
+Goal: when the night-run ends, every DB/API brief has complete, working
+files in the repo. Zivar runs the deploy commands manually the next day
+with network access.
+
 ### Sandbox egress may fail
 Earlier runs saw `proxy 403` calling `*.supabase.co` or
 `release-assets.githubusercontent.com`. If a network command fails with 000/403:
@@ -99,6 +119,7 @@ Override:
 | Event | Destination |
 |---|---|
 | Brief completed | `briefs/done/BRIEF-XXX-NNN.done.md` + `NIGHT-RUN.md` |
+| Brief files complete, external verification pending | `briefs/done/BRIEF-XXX-NNN.prepared.md` + `NIGHT-RUN.md` |
 | Brief skipped (missing creds) | `briefs/done/BRIEF-XXX-NNN.skipped.md` + `NIGHT-RUN.md` |
 | Brief blocked mid-execution | `briefs/blocked/BRIEF-XXX-NNN.blocked.md` + `NIGHT-RUN.md` |
 | Non-urgent question to Zivar | `questions/BRIEF-XXX-NNN.question.md` |

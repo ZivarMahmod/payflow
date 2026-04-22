@@ -10,9 +10,14 @@ correctly without human input that is not currently available. Skipping
 is a first-class status — the agent continues to the next eligible brief
 and records the skip in `NIGHT-RUN.md`.
 
-Skipping is NOT the same as blocking. Block = "I started and got stuck,
-something is broken." Skip = "I identified up-front that I should not
-start this one, and I moved on."
+Three distinct statuses:
+- **Done** = "Completed and verified end-to-end."
+- **Prepared** = "All files written correctly. Local verifications (typecheck,
+  lint, unit tests) green. External verification blocked by egress/creds —
+  Zivar will run it manually."
+- **Skipped** = "Shouldn't start at all. Missing secret or decision makes the
+  work meaningless until Zivar acts."
+- **Blocked** = "Started and got stuck. Something is broken and needs fixing."
 
 ## When to Skip
 
@@ -30,6 +35,61 @@ A brief is skipped if ANY of these hold:
 4. **Depends on a skipped brief that is blocking.** Only if the skipped
    dependency produced artifacts the current brief needs. If the
    dependency is optional, keep going.
+
+## When to PREPARE instead of skip
+
+For briefs where Cowork **can** write all code/SQL/config correctly but
+**cannot** verify against an external service due to egress restrictions:
+
+- DB-briefs where SQL migration files + generated types are the real output.
+  `pnpm supabase db push` is the external step — Zivar runs it manually.
+- API-briefs where the skeleton + routes + tests can be written, but
+  `curl` against Supabase health-check is blocked.
+- Any brief that is NOT blocked by missing credentials (those SKIP), but
+  only by network access (those PREPARE).
+
+**Rule:** If the work product is code/SQL/config that compiles and
+typechecks locally, write it fully. Document what verification step Zivar
+needs to run. Mark as PREPARED, not SKIPPED.
+
+### How to mark PREPARED
+
+1. Complete all file-writing steps in the brief.
+2. Run local verifications (typecheck, lint, any pure unit tests).
+3. Skip only external verifications (db push, curl to external services,
+   runtime against real API).
+4. Create `briefs/done/BRIEF-XXX-NNN.prepared.md`:
+   ```markdown
+   # BRIEF-XXX-NNN — <title> — PREPARED
+
+   - **Date:** <ISO>
+   - **Commit:** <hash>
+   - **Status:** Files complete. Awaiting manual verification by Zivar.
+
+   ## Local verifications passed
+   - [x] pnpm typecheck
+   - [x] pnpm lint
+   - [x] <any unit tests>
+
+   ## Manual steps for Zivar (run locally with network access)
+   ```bash
+   # exact commands with expected output
+   cd packages/db
+   pnpm supabase db push
+   pnpm supabase gen types typescript --linked > src/database.types.ts
+   ```
+
+   ## Files changed
+   - packages/db/supabase/migrations/001_xxx.sql
+   - ...
+   ```
+5. Append to `NIGHT-RUN.md` under "Prepared".
+6. Commit with brief's normal commit message — same as Done.
+7. Continue to next eligible brief.
+
+Prepared briefs count as processed. They do NOT block downstream briefs
+that only need the files (not the deployed state). Downstream briefs that
+DO need the deployed state get marked PREPARED themselves.
 
 ## When NOT to Skip
 
@@ -57,20 +117,35 @@ When deciding to skip, do all of the following:
 2. Append a line to `NIGHT-RUN.md` under "Skipped".
 3. Continue to the next eligible brief. Do not treat skips as failures.
 
-## Specific Skip Policy for Current Sprint
+## Status policy for current sprint
 
-Unless `.agent/secrets.env` has been updated since this file was written,
-the following briefs WILL be skipped on the first night-run:
+### SKIPPED (credentials/decisions missing)
 
-| Brief | Reason | To unskip |
+| Brief | Reason | Unskip by |
 |---|---|---|
-| BRIEF-API-005 | MISSING_SECRET | `STRIPE_SECRET_KEY` + `STRIPE_PUBLISHABLE_KEY` + `STRIPE_WEBHOOK_SECRET` |
-| BRIEF-KI-006 | DEPENDENCY_SKIPPED (API-005) | same as API-005 |
-| BRIEF-TA-001 | DECISION_REQUIRED (Supabase Auth provider config) | Zivar confirms auth provider + redirect URLs |
-| BRIEF-TA-002 | DEPENDENCY_SKIPPED (TA-001) | same as TA-001 |
-| BRIEF-TA-003 | DEPENDENCY_SKIPPED (TA-001) | same as TA-001 |
-| BRIEF-TA-004 | DEPENDENCY_SKIPPED (TA-001) | same as TA-001 |
-| BRIEF-SA-001 | ULTRATHINK | Zivar reviews architecture before run |
+| API-005 | MISSING_SECRET | Fill Stripe keys in secrets.env |
+| KI-006 | DEPENDENCY_SKIPPED (API-005) | Same |
+| TA-001 | DECISION_REQUIRED (auth provider) | Zivar decides in CONTEXT.md |
+| TA-002 | DEPENDENCY_SKIPPED (TA-001) | Same |
+| TA-003 | DEPENDENCY_SKIPPED (TA-001) | Same |
+| TA-004 | DEPENDENCY_SKIPPED (TA-001) | Same |
+| SA-001 | ULTRATHINK | Zivar reviews before run |
 
-All other briefs (DB-*, SC-*, API-001–004 + API-006, POS-*, KI-002 through
-KI-005 + KI-007, TA-005) are in-scope for autonomous execution.
+### PREPARED (files written, egress blocked for verification)
+
+| Brief | Reason | Manual verification |
+|---|---|---|
+| DB-001 | EGRESS_BLOCKED | `cd packages/db && pnpm supabase db push` |
+| DB-002 | EGRESS_BLOCKED | Same |
+| DB-003 | EGRESS_BLOCKED | Same |
+| SC-001 | EGRESS_BLOCKED | Same + manually test RLS policies |
+| API-001 | EGRESS_BLOCKED | `pnpm dev` + curl health-check locally |
+| API-002 | EGRESS_BLOCKED | End-to-end test with local API + cloud DB |
+| API-004 | EGRESS_BLOCKED | Same |
+| KI-002 | EGRESS_BLOCKED | Run with `pnpm dev` against local API |
+| KI-003 | EGRESS_BLOCKED | Same |
+| KI-007 | EGRESS_BLOCKED | Same |
+
+### DONE autonomously (mock-first, no egress needed)
+
+POS-001, POS-002, API-003, API-006, KI-004, KI-005, TA-005

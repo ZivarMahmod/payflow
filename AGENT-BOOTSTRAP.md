@@ -105,6 +105,17 @@ För vald brief:
       Inte valfritt. Om en check fallerar: laga. Om >30 min utan framsteg →
       "Fastnat mitt i brief" nedan.
 
+**Undantag: egress-blockerade verifs.** Om en checkbox i briefens Verifiering
+kräver nätverk till `*.supabase.co` eller annan extern tjänst OCH
+egress-blocket finns (se `STATUS-EGRESS-BLOCKED.md`):
+- Hoppa över just den checken.
+- Dokumentera den som "manual step for Zivar" i `.prepared.md`.
+- Briefen räknas som PREPARED, inte DONE.
+- Alla lokala verifs (typecheck, lint, unit tests) måste fortfarande vara
+  gröna — de är inte undantag.
+
+PREPARED räknas som processad. Körningen fortsätter till nästa brief.
+
 5. **För 🔴/⚫-briefs även:** invokera `engineering:code-review` skill på
    staged diff innan commit. Åtgärda alla "critical" och "high"-fynd. Övriga
    kommentarer → notera i `.done.md` under "Kodgranskning".
@@ -145,6 +156,10 @@ För vald brief:
 - `apps/api/src/...`
 - ...
 ```
+
+**Alternativt för egress-blockerade briefs:** Skapa
+`briefs/done/BRIEF-XXX-NNN.prepared.md` istället för `.done.md`. Se
+`SKIP-CONDITIONS.md` för mall.
 
 9. Uppdatera `NIGHT-RUN.md`:
    - Lägg till raden `- BRIEF-XXX-NNN — <titel> — <commit-hash>` under
@@ -262,7 +277,7 @@ Avsluta körningen.
 
 | Trigger | Action |
 |---|---|
-| Alla 28 briefs processade (done + skipped) | `/SPRINT-COMPLETE.md` + NIGHT-RUN summary + avsluta |
+| Alla 28 briefs processade (done + prepared + skipped) | `/SPRINT-COMPLETE.md` + NIGHT-RUN summary + avsluta |
 | Alla kvarvarande blocked (ej skipped) | `/STATUS-ALL-BLOCKED.md` + NIGHT-RUN + avsluta |
 | Setup-filer saknas | `/STOP-SETUP-INCOMPLETE.md` + avsluta |
 | `.agent/secrets.env` saknas/ofullständig | `/STOP-SETUP-INCOMPLETE.md` + avsluta |
