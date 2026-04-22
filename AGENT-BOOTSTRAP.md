@@ -70,6 +70,20 @@ Första körningen varje dag: läs `COWORK-CHARTER.md` i sin helhet.
   (antal briefs, antal avvikelser, öppna frågor, testresultat). Skriv
   sista status-fil. Avsluta.
 
+### Skip-check (nytt)
+
+Innan du väljer en brief som eligible, kör skip-check:
+
+1. Öppna `SKIP-CONDITIONS.md` och kolla om den aktuella briefen matchar
+   någon skip-regel.
+2. Om ja: skapa `.skipped.md` enligt formatet i SKIP-CONDITIONS.md,
+   appenda till `NIGHT-RUN.md`, hoppa direkt till nästa eligible brief
+   (återupprepa skip-check).
+3. Om nej: fortsätt till Steg 4 och kör briefen normalt.
+
+Skippade briefs räknas som "processade" för loopens syfte — körningen
+fortsätter.
+
 ---
 
 ## Steg 4 — Kör briefen
@@ -129,6 +143,12 @@ För vald brief:
 - ...
 ```
 
+9. Uppdatera `NIGHT-RUN.md`:
+   - Lägg till raden `- BRIEF-XXX-NNN — <titel> — <commit-hash>` under
+     "Done".
+   - Committa `NIGHT-RUN.md` som del av briefens slutcommit, INTE en
+     separat commit.
+
 ---
 
 ## Steg 5 — Loopa
@@ -139,14 +159,15 @@ API-005, POS-002, SA-001) får ta flera körningar — använd `.done.md` som
 checkpoint bara när verifiering passerar, annars lämna brief i pågående
 läge och dokumentera framsteg i status-filen.
 
-**Kontext-tumregler (försiktig sida — Zivar prioriterar säkerhet över hastighet):**
-- Vid >60% context kvar + brief klar med verifiering grön → ta nästa brief,
-  MEN bara om den är 🟢 eller 🟡. 🔴/⚫ får alltid fresh körning.
-- Vid 40-60% context → avsluta körningen snyggt oavsett läge.
-- Vid <40% context mitt i brief → gör en WIP-commit (typecheckad) och avsluta.
-  Nästa körning fortsätter med färskt context. Better safe than sorry.
-- Aldrig: pressa igenom en 🔴 brief på slutet av en körning med lite context
-  kvar. Dåliga verifieringar leder till bugs som kostar mer senare.
+**Kontext-tumregler för night-run:**
+- Vid >60% context kvar + brief klar → ta nästa oavsett tier (🟢🟡🔴).
+  ⚫ Ultrathink skippas enligt SKIP-CONDITIONS.md.
+- Vid 30–60% context → ta nästa brief bara om den är 🟢 eller 🟡. 🔴
+  väntar till nästa körning med fresh context.
+- Vid <30% context → WIP-commit om mitt i brief, skriv `NIGHT-RUN.md`-
+  uppdatering, avsluta körning. Nästa schemalagda körning tar vid.
+- Aldrig: pressa igenom en 🔴 brief på slutet av en körning med lite
+  context kvar.
 
 **Metodisk mindset (från Zivar direkt):**
 Det är OK att schemat tar sin tid. Fel i tidiga briefs kaskaderar nedåt.
@@ -238,11 +259,11 @@ Avsluta körningen.
 
 | Trigger | Action |
 |---|---|
-| Alla 28 briefs `.done.md` | `/SPRINT-COMPLETE.md` + status + avsluta |
-| Alla kvarvarande blocked/beror på blocked | `/STATUS-ALL-BLOCKED.md` + status + avsluta |
-| Setup-filer saknas | `/STOP-SETUP-INCOMPLETE.md` + status + avsluta |
-| Context < 20% | Snyggt avslut (Steg 6), låt nästa körning ta vid |
-| Zivar skapar `/PAUSE.md` | Status + avsluta, starta inte förrän filen är borta |
+| Alla 28 briefs `.done.md` eller `.skipped.md` | `/SPRINT-COMPLETE.md` + `NIGHT-RUN.md` summary + avsluta |
+| Alla kvarvarande `blocked` (inte skipped) och inga eligible | `/STATUS-ALL-BLOCKED.md` + `NIGHT-RUN.md` + avsluta |
+| Setup-filer saknas | `/STOP-SETUP-INCOMPLETE.md` + avsluta |
+| Context < 20% | Snyggt avslut, `NIGHT-RUN.md`-uppdatering, nästa körning fortsätter |
+| `/PAUSE.md` finns | Avsluta direkt, starta inte förrän filen är borta |
 
 ---
 

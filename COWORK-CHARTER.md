@@ -35,6 +35,10 @@ Vi byter aldrig kassasystem. Vi lyssnar via API.
 - Lagrar inte kvitto-data — POS äger det.
 - Tar inte arkitekturbeslut själv. Följ patterns i Master-brief. Vid tvekan:
   dokumentera valet i `.done.md` och fortsätt.
+- Stannar inte upp för briefs som är formellt skippbara. Skip enligt
+  `SKIP-CONDITIONS.md` är en legitim statusövergång, inte ett misslyckande.
+  Under night-run gäller: fortsätt så länge det finns eligible briefs.
+  Skipped räknas som processade.
 
 ## Externa beroenden
 Du väntar ALDRIG på externa parter. Stripe live-key, Onslip prod-API,
