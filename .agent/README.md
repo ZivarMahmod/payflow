@@ -1,31 +1,42 @@
-# .agent/ — helper scripts for the scheduled agent
+# .agent/ — Cowork agent configuration
 
-These scripts handle the git workflow across sandbox sessions that don't
-persist state between runs. Everything outside `/sessions/.../mnt/payflow/`
-gets wiped, so git state is re-established from `origin` each run.
+Everything the Cowork agent needs to run FlowPay builds.
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `env.sh` | Sets `GIT_DIR`, `GIT_WORK_TREE`, loads `secrets.env` (PAT) |
-| `setup-git.sh` | Initializes GIT_DIR from origin, pulls latest |
-| `commit-push.sh` | Stages all, commits, pushes to origin/main |
-| `secrets.env` | **Gitignored.** Stores `GITHUB_PAT=ghp_...` |
+| File | Purpose | Tracked? |
+|---|---|---|
+| `CONTEXT.md` | Project state, decisions, gotchas | ✅ |
+| `secrets.env.example` | Template for local secrets | ✅ |
+| `secrets.env` | Actual secrets, filled locally | ❌ NEVER |
+| `env.sh` | Loads GIT_DIR + sources secrets.env | ✅ |
+| `setup-git.sh` | Initializes GIT_DIR, pulls origin/main | ✅ |
+| `commit-push.sh` | Commits staged + pushes to main | ✅ |
 
-## Agent runtime flow
+## First-time setup (per machine)
 
 ```bash
-cd /sessions/confident-focused-cannon/mnt/payflow
-source .agent/env.sh
-bash .agent/setup-git.sh          # fetch + pull
-# ...agent does work (reads briefs, writes code, creates done files)...
-bash .agent/commit-push.sh "BRIEF-IN-001: Scaffold pnpm + Turborepo"
+cd <repo-root>
+cp .agent/secrets.env.example .agent/secrets.env
+# Edit .agent/secrets.env:
+#   From Bitwarden "Flowpay Supabase" → SUPABASE_* values
+#   GitHub PAT → GITHUB_PAT
+# Leave OPTIONAL blocks empty until credentials arrive.
 ```
 
-## Resetting if things go wrong
+Verify it's NOT tracked:
+```bash
+git status .agent/secrets.env   # should list nothing
+git check-ignore -v .agent/secrets.env   # should confirm ignore rule
+```
 
-- Delete `/tmp/payflow-git/` — next run re-initializes.
-- Manually fix `secrets.env` if PAT rotated.
-- If mount diverges from origin: `git fetch origin && git reset --hard origin/main`
-  (destructive — will clobber uncommitted agent work).
+## Missing secrets behavior
+
+Agent reads secrets at run start:
+- OPTIONAL empty → dependent briefs get skipped (see `SKIP-CONDITIONS.md`)
+- REQUIRED empty → `STOP-SETUP-INCOMPLETE.md` + clean exit
+
+## Updating CONTEXT.md
+
+When a decision changes, update `CONTEXT.md` in the same commit as the
+code change. Agent reads it fresh every run.

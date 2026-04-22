@@ -1,26 +1,25 @@
 # Night Run Log
 
-> Living log of the autonomous night-run. Appended to after every brief
-> (done OR skipped). Latest entry at the top.
+> Appended to after every brief (done OR skipped OR blocked).
+> Latest entry at top of each section.
 
-## Current session
+## Progress tracker
 
-- **Started:** <not started>
-- **Branch:** `main` (all work goes directly to main per Zivar's direction)
-
-## Progress
-
-_Updated after every brief._
+**Target:** 28/28 briefs processed.
+**Current:** 4/28 done (IN-001, IN-002, UI-001, KI-001).
 
 ### Done
-_(empty)_
+- BRIEF-IN-001 — Monorepo scaffold
+- BRIEF-UI-001 — Design system
+- BRIEF-KI-001 — Guest PWA skeleton
+- BRIEF-IN-002 — Supabase setup (partial, 2 manual verifs pending)
 
 ### Skipped
-_(empty)_
+_(populated as agent runs)_
 
 ### Blocked
-_(empty — blocks should still use `briefs/blocked/*.blocked.md` as usual)_
+_(should be empty — use `briefs/blocked/*.blocked.md`)_
 
-## Summary
+## Session summary
 
-_Written when the run ends (all briefs processed, context low, or manual stop)._
+_Written at end of each scheduled run._

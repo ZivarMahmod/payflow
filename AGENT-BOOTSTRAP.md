@@ -36,8 +36,11 @@ Krav:
 - `docs/mock-strategy.md` finns
 - `briefs/README.md` finns
 - Minst en `briefs/BRIEF-*.md` finns
+- `.agent/CONTEXT.md` finns
+- `SKIP-CONDITIONS.md` finns
+- `NIGHT-RUN.md` finns
 
-Första körningen varje dag: läs `COWORK-CHARTER.md` i sin helhet.
+Första körningen varje dag: läs `COWORK-CHARTER.md` OCH `.agent/CONTEXT.md` i sin helhet.
 
 ---
 
@@ -259,11 +262,12 @@ Avsluta körningen.
 
 | Trigger | Action |
 |---|---|
-| Alla 28 briefs `.done.md` eller `.skipped.md` | `/SPRINT-COMPLETE.md` + `NIGHT-RUN.md` summary + avsluta |
-| Alla kvarvarande `blocked` (inte skipped) och inga eligible | `/STATUS-ALL-BLOCKED.md` + `NIGHT-RUN.md` + avsluta |
+| Alla 28 briefs processade (done + skipped) | `/SPRINT-COMPLETE.md` + NIGHT-RUN summary + avsluta |
+| Alla kvarvarande blocked (ej skipped) | `/STATUS-ALL-BLOCKED.md` + NIGHT-RUN + avsluta |
 | Setup-filer saknas | `/STOP-SETUP-INCOMPLETE.md` + avsluta |
-| Context < 20% | Snyggt avslut, `NIGHT-RUN.md`-uppdatering, nästa körning fortsätter |
-| `/PAUSE.md` finns | Avsluta direkt, starta inte förrän filen är borta |
+| `.agent/secrets.env` saknas/ofullständig | `/STOP-SETUP-INCOMPLETE.md` + avsluta |
+| Context < 20% | Snyggt avslut, NIGHT-RUN-update, nästa körning fortsätter |
+| `/PAUSE.md` finns | Avsluta direkt |
 
 ---
 

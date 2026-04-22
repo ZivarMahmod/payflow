@@ -14,6 +14,7 @@ Vi bygger OVANPÅ befintliga POS-system (Onslip, Caspeco).
 Vi byter aldrig kassasystem. Vi lyssnar via API.
 
 ## Källor (läs i denna ordning vid tveksamhet)
+0. `.agent/CONTEXT.md` — projektstate, beslut, kända gotchas
 1. `/docs/FlowPay-Master-v2.md` — arkitektur + patterns
 2. `/docs/mock-strategy.md` — mock-strategi för externa integrationer
 3. Aktuell brief
