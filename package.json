@@ -19,8 +19,9 @@
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "turbo": "^2.3.3",
     "@biomejs/biome": "^1.9.4",
+    "supabase": "^2.95.0",
+    "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   },
   "license": "UNLICENSED",

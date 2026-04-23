@@ -1,0 +1,30 @@
+{
+  "name": "@flowpay/qr-pdf",
+  "version": "0.0.1",
+  "private": true,
+  "description": "FlowPay print-ready QR-PDF generator. Consumed by the admin app (BRIEF-TA-005) to produce printable table-QR sheets.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint src",
+    "test": "echo 'no tests yet' && exit 0",
+    "clean": "rm -rf node_modules dist .turbo"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.7.2"
+  }
+}

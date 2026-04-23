@@ -62,3 +62,13 @@ export type Order = z.infer<typeof orderSchema>;
 
 /** Handy re-exports so consumers can `import { z } from '@flowpay/schemas'`. */
 export { z };
+
+/**
+ * Real-API shapes (API-002 onwards) live in ./order.ts. The historical
+ * `orderSchema` above is öre-based for the KI-001 fixture view — keep it
+ * as-is to avoid breaking the guest-PWA dummy-nota path.
+ */
+export * from './order.js';
+export * from './payment.js';
+export * from './split.js';
+export * from './review.js';
