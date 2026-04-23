@@ -1,34 +1,35 @@
 # @flowpay/guest
 
-Gäst-PWA — skanna QR, se nota, betala. Landar på `/t/:slug/:tableId?order=<token>`.
+Gäst-PWA — skanna QR, se nota, betala. Editorial design (Vildsvin & Vin-flöde).
 
 ## Kör lokalt
 
 ```bash
 pnpm --filter @flowpay/guest dev
-# → http://localhost:5173/t/test-bistro/t1?order=abc
+# → http://localhost:5173/t/test-bistro/Bord1?order=bord-1-dev
 ```
 
-Utan `?order=` får du fallbacken "Ingen aktiv beställning" — det är med flit.
+URL-format: `/t/:slug/:tableId?order=<token>`
 
-## Struktur
+- `:slug` — restaurangens slug (`restaurants.slug`)
+- `:tableId` — visuell etikett, ej databas-uppslag
+- `?order=<token>` — opaque-token min 8 tecken, slår upp `orders_cache.order_token`
 
-```
-src/
-  App.tsx              — router (endast /t/:slug/:tableId i KI-001)
-  main.tsx             — React + React Query + BrowserRouter
-  index.css            — Tailwind v4 + @flowpay/ui/tokens.css
-  hooks/
-    useOrderToken.ts   — parsar ?order=… via Zod
-  routes/
-    order.tsx          — notavy + dummy-data (byts till riktig i KI-002)
-    not-found.tsx      — fallback
-  lib/
-    format.ts          — öre → "185,00 kr"
-public/
-  manifest.json        — PWA-manifest, theme_color = #FF5A1F
-  icon.svg             — orange "F", källa för alla storlekar
-```
+Utan giltig token visas "Notan hittades inte"-fallback.
+
+## Flödet (9 skärmar)
+
+| Steg | Route | Komponent | Skärm |
+|---|---|---|---|
+| 1 | `/t/:slug/:tableId` | [WelcomeView](src/components/WelcomeView.tsx) | Välkomst (peach glow) |
+| 2 | `/t/:slug/:tableId` | [BillView](src/components/BillView.tsx) | Notan (dotted dividers, moms, total) |
+| 3 | `/t/:slug/:tableId/split` | [SplitModeSelector](src/components/SplitModeSelector.tsx) | Lika / Välj rader / Eget belopp |
+| 4 | `/t/:slug/:tableId/split` | [SplitItems](src/components/SplitItems.tsx) | Checkbox-lista + DIN DEL dark-summary |
+| 5 | `/t/:slug/:tableId/split` | [SplitPortion](src/components/SplitPortion.tsx) | Slider + 1/4–2/3 quick-pills |
+| 6 | `/t/:slug/:tableId/pay` | [TipSelector](src/components/TipSelector.tsx) | 2×2 tip-grid + custom amount |
+| 7 | `/t/:slug/:tableId/pay` | [SwishQR](src/components/SwishQR.tsx) | QR + F-logga + to/meddelande |
+| 8 | `/t/:slug/:tableId/success` | [success.tsx](src/routes/success.tsx) | Mint check, kvitto, email, recension |
+| 9 | `/t/:slug/:tableId/feedback` | [GoogleReviewPrompt](src/components/GoogleReviewPrompt.tsx) | Stjärnor + Google Business Profile |
 
 ## Bundle-budget
 
@@ -39,13 +40,21 @@ public/
 
 ## Designregler
 
-- Ingen hårdkodad färg i TSX. Endast `bg-paper`, `text-ink`, `ring-accent`,
-  `h-touch-md` osv. från `@flowpay/ui/tokens.css`.
-- Touch-targets ≥ 56 px (`h-touch-md`). Lighthouse straffar mindre.
-- Ingen `user-scalable=no` eller `maximum-scale=1` — bryter zoom på iOS.
+- Ingen hårdkodad färg i TSX. Endast tokens från `@flowpay/ui/tokens.css`
+  (`bg-paper`, `text-ink`, `bg-accent`, `text-mint`, `bg-shell`, etc.).
+- Editorial serif (`font-serif-italic`) för rubriker. Inter för body.
+- Touch-targets ≥ 56 px på primary CTAs.
+- Inga `user-scalable=no` eller `maximum-scale=1` — bryter zoom på iOS.
+- Belopp renderas via `<Amount value={x} />` så "kr"-suffixet får rätt typografi.
 
-## Nästa steg
+## Miljövariabler
 
-- **KI-002** — byter `DUMMY_ORDER` mot `useQuery(['order', token])` mot `/orders/:token`.
-- **KI-003** — lägger in betalflöde + `payments.create`-anrop.
-- **KI-004** — split, tips.
+`VITE_API_URL` (krävs i dev) — pekar på Fastify-API:t, t.ex. `http://192.168.50.169:3001`.
+Se `.env.example`.
+
+## Noter att veta om
+
+- Welcome är ett *state* av OrderRoute (inte egen route). Refresh återställer till welcome.
+- Moms-rader använder en heuristik (drick-keywords → 25 %, övrigt → 12 %) tills POS-adaptrar
+  pushar `vatRate` per rad. Endast directional, POS äger formell breakdown.
+- Kort-betalning är dold bakom en ghost-länk i tip-steget tills Stripe-briefen (API-005) har keys.

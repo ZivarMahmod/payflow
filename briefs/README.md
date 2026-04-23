@@ -55,7 +55,7 @@ Mata en brief i taget till Claude Code. Verifiera alla checkpoints innan du går
 ## Night-run skip-katalog
 
 Under autonom körning utan Zivar i loopen förväntas följande briefs
-skippas (se `SKIP-CONDITIONS.md`):
+skippas (se `../docs/SKIP-CONDITIONS.md`):
 
 - **API-005, KI-006** — väntar på Stripe-credentials
 - **TA-001 t.o.m. TA-004** — väntar på auth-beslut

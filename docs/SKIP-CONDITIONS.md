@@ -119,7 +119,12 @@ When deciding to skip, do all of the following:
 
 ## Status policy for current sprint
 
-### SKIPPED (credentials/decisions missing)
+> **Update 2026-04-24:** PREPARED-briefs nedan är numera verifierade av
+> Zivar lokalt — DB pushad, API + guest PWA kör end-to-end mot Supabase
+> cloud. Tabellen lämnas som historisk record över vad som var blockerat
+> under nattkörningen 2026-04-23.
+
+### Fortfarande SKIPPED (credentials/decisions missing)
 
 | Brief | Reason | Unskip by |
 |---|---|---|
@@ -131,20 +136,10 @@ When deciding to skip, do all of the following:
 | TA-004 | DEPENDENCY_SKIPPED (TA-001) | Same |
 | SA-001 | ULTRATHINK | Zivar reviews before run |
 
-### PREPARED (files written, egress blocked for verification)
+### Tidigare PREPARED → numera DONE (verifierat 2026-04-23/24)
 
-| Brief | Reason | Manual verification |
-|---|---|---|
-| DB-001 | EGRESS_BLOCKED | `cd packages/db && pnpm supabase db push` |
-| DB-002 | EGRESS_BLOCKED | Same |
-| DB-003 | EGRESS_BLOCKED | Same |
-| SC-001 | EGRESS_BLOCKED | Same + manually test RLS policies |
-| API-001 | EGRESS_BLOCKED | `pnpm dev` + curl health-check locally |
-| API-002 | EGRESS_BLOCKED | End-to-end test with local API + cloud DB |
-| API-004 | EGRESS_BLOCKED | Same |
-| KI-002 | EGRESS_BLOCKED | Run with `pnpm dev` against local API |
-| KI-003 | EGRESS_BLOCKED | Same |
-| KI-007 | EGRESS_BLOCKED | Same |
+DB-001, DB-002, DB-003, SC-001, API-001, API-002, API-004, KI-002,
+KI-003, KI-007 — alla körs end-to-end mot live Supabase + lokal API.
 
 ### DONE autonomously (mock-first, no egress needed)
 

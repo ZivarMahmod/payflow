@@ -13,7 +13,7 @@ och sedan gjort en genomgång för att hitta fel.
   köra det pga egress-blocket, men en genomsökning av alla imports,
   factory-registreringar, schema-exports, DB-kolumner och
   strict-mode-fallgropar visade inget som bryter build.
-- **Breakdown matchar INTE prognosen i SKIP-CONDITIONS.md.** Prognosen
+- **Breakdown matchar INTE prognosen i docs/SKIP-CONDITIONS.md.** Prognosen
   var 11 done + 10 prepared + 7 skipped; vi landade på 4 + 17 + 7.
   Därför skrev jag `STATUS-COUNT-MISMATCH.md` istället för
   `SPRINT-COMPLETE.md` (projekt-reglerna säger så). Anledningen är
@@ -134,7 +134,7 @@ den körs:
 Night-run-schemat fortsätter försöka köra varje timme. Varje körning
 kommer nu att:
 1. Läsa NIGHT-RUN.md, se 28/28 + count-mismatch-status,
-2. Läsa SKIP-CONDITIONS.md, se att 7 skippade ligger på dina beslut,
+2. Läsa docs/SKIP-CONDITIONS.md, se att 7 skippade ligger på dina beslut,
 3. Inte hitta nån eligible brief,
 4. Inte skriva mer.
 

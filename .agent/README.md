@@ -33,7 +33,7 @@ git check-ignore -v .agent/secrets.env   # should confirm ignore rule
 ## Missing secrets behavior
 
 Agent reads secrets at run start:
-- OPTIONAL empty → dependent briefs get skipped (see `SKIP-CONDITIONS.md`)
+- OPTIONAL empty → dependent briefs get skipped (see `docs/SKIP-CONDITIONS.md`)
 - REQUIRED empty → `STOP-SETUP-INCOMPLETE.md` + clean exit
 
 ## Updating CONTEXT.md

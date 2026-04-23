@@ -63,7 +63,7 @@ See `STATUS-EGRESS-BLOCKED.md`.
 2. **Verify locally.** Run `pnpm typecheck`, `pnpm lint`, any pure unit tests.
 3. **Skip external verification.** `supabase db push`, `curl` against
    Supabase, live API round-trips — document these as manual steps.
-4. **Mark as PREPARED, not SKIPPED.** See `SKIP-CONDITIONS.md` "When to
+4. **Mark as PREPARED, not SKIPPED.** See `docs/SKIP-CONDITIONS.md` "When to
    PREPARE instead of skip".
 
 Goal: when the night-run ends, every DB/API brief has complete, working
@@ -111,7 +111,7 @@ Standard order: `briefs/README.md` Fas 0 → Fas 3.
 
 Override:
 - `Beror på:` unmet → skip, try next
-- Matches `SKIP-CONDITIONS.md` → `.skipped.md` + next
+- Matches `docs/SKIP-CONDITIONS.md` → `.skipped.md` + next
 - Context < 30% → WIP-commit, end run, next run picks up fresh
 
 ## Where to write what
