@@ -133,9 +133,7 @@ export class PosSyncService {
     }
 
     // Real mode — service-role calls the SECURITY DEFINER helper.
-    // Deliberately typed as `string | null` from the RPC return.
-    const { data, error } = await this.deps.adminClient.rpc<string | null, { p_integration_id: string }>(
-      // @ts-expect-error — rpc signature is loose until we regenerate the typed stubs
+    const { data, error } = await this.deps.adminClient.rpc(
       'get_pos_credentials',
       { p_integration_id: integration.id },
     );

@@ -22,6 +22,8 @@
 import type { Database } from '@flowpay/db/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+type PaymentUpdate = Database['public']['Tables']['payments']['Update'];
+
 export interface CompletePaymentInput {
   adminClient: SupabaseClient<Database>;
   paymentId: string;
@@ -96,13 +98,11 @@ export async function completePayment(
     );
   }
 
-  const update: Record<string, unknown> = {
+  const update: PaymentUpdate = {
     status: 'completed',
     paid_at: new Date().toISOString(),
+    ...(providerTxId !== undefined ? { provider_tx_id: providerTxId } : {}),
   };
-  if (providerTxId !== undefined) {
-    update['provider_tx_id'] = providerTxId;
-  }
 
   const { data: flipped, error: updErr } = await adminClient
     .from('payments')

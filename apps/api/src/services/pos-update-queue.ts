@@ -385,7 +385,6 @@ export class PosUpdateQueueWorker {
       return { apiKey: 'mock-apikey' };
     }
     // SECURITY DEFINER RPC; only callable by service-role.
-    // @ts-expect-error — rpc signature is loose until we regenerate typed stubs
     const { data, error } = await this.opts.adminClient.rpc('get_pos_credentials', {
       p_integration_id: integrationId,
     });

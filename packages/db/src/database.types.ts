@@ -613,6 +613,8 @@ export interface Database {
                     restaurant_slug: string;
                     restaurant_logo_url: string | null;
                     restaurant_swish_number: string | null;
+                    restaurant_default_tip_percent: number;
+                    restaurant_tip_options: Json;
                     table_number: string | null;
                 }[];
             };

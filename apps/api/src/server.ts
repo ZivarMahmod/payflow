@@ -138,9 +138,13 @@ export async function buildServer(): Promise<FastifyInstance> {
   // Generic error handler — don't leak internals to clients.
   fastify.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error, url: request.url }, 'request failed');
-    const status = error.statusCode ?? 500;
-    const message = status < 500 ? error.message : 'Internal Server Error';
-    reply.status(status).send({ error: { message, code: error.code ?? 'E_INTERNAL' } });
+    // Fastify types `error` as FastifyError which has optional statusCode/code,
+    // but the handler shape in this version widens it to unknown at the callback
+    // boundary. Narrow defensively so a non-Error payload can't crash the reply.
+    const err = error as { statusCode?: number; message?: string; code?: string };
+    const status = err.statusCode ?? 500;
+    const message = status < 500 ? (err.message ?? 'Bad Request') : 'Internal Server Error';
+    reply.status(status).send({ error: { message, code: err.code ?? 'E_INTERNAL' } });
   });
 
   return fastify;
