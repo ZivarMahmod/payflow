@@ -46,3 +46,28 @@ values
      'demo0000000000000000000000000003',
      true)
 on conflict (id) do nothing;
+
+-- ─── 1 open order on table 1 ───────────────────────────────────────────────
+-- Items jsonb shape matches packages/schemas/src/order.ts cachedOrderItemSchema.
+-- Guest URL: http://localhost:5173/t/test-bistro/1?order=test-order-token-abc123
+insert into public.orders_cache
+    (id, restaurant_id, location_id, table_id,
+     pos_order_id, pos_type, order_token,
+     total, currency, items, status)
+values (
+    '44444444-4444-4444-4444-444444444401',
+    '11111111-1111-1111-1111-111111111111',
+    '22222222-2222-2222-2222-222222222222',
+    '33333333-3333-3333-3333-333333333301',
+    'SEED-001',
+    'onslip',
+    'test-order-token-abc123',
+    485.00,
+    'SEK',
+    '[
+      {"name":"Köttbullar","qty":2,"unitPrice":165,"lineTotal":330},
+      {"name":"Öl 50cl","qty":2,"unitPrice":77.5,"lineTotal":155}
+    ]'::jsonb,
+    'open'
+)
+on conflict (id) do nothing;

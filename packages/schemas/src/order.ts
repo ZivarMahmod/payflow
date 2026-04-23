@@ -115,7 +115,9 @@ export const orderByTokenResponseSchema = z.object({
   restaurant: orderRestaurantPublicSchema,
   table: orderTablePublicSchema,
   /** ISO-8601 — when the POS last updated this snapshot. */
-  updatedAt: z.string().datetime(),
+  // Supabase/PostgREST serialises timestamptz with a numeric offset
+  // ("…+00:00"), not a "Z" suffix, so we must opt into offset parsing.
+  updatedAt: z.string().datetime({ offset: true }),
 });
 export type OrderByTokenResponse = z.infer<typeof orderByTokenResponseSchema>;
 

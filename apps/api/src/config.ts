@@ -8,11 +8,14 @@
  */
 
 import { config as loadDotenv } from 'dotenv';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
 import { z } from 'zod';
 
-// Load .env in development. In production (Fly.io) the env vars are
-// injected by the platform, so `.env` is absent and dotenv silently no-ops.
-loadDotenv();
+// Load .env from the api package root regardless of cwd (pnpm --filter
+// starts the process from the workspace root, not apps/api).
+const __dirname = dirname(fileURLToPath(import.meta.url));
+loadDotenv({ path: resolve(__dirname, '../.env') });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),

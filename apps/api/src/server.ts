@@ -11,6 +11,8 @@
  * Handlers are NEVER defined inline here (anti-pattern #3 in the brief).
  */
 
+import { pathToFileURL } from 'node:url';
+
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -178,7 +180,11 @@ async function main(): Promise<void> {
 }
 
 // Only run when invoked directly (allows importing buildServer from tests).
-const isEntrypoint = import.meta.url === `file://${process.argv[1]}`;
+// pathToFileURL handles Windows drive letters + backslashes; a plain
+// `file://${argv[1]}` concat never matches import.meta.url on Windows.
+const isEntrypoint =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isEntrypoint) {
   void main();
 }
