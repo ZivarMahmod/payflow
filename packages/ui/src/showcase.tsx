@@ -17,7 +17,7 @@ import { Stack } from './components/Stack';
  *   export default function Page() { return <Showcase />; }
  */
 
-const variants: readonly ButtonVariant[] = ['primary', 'secondary', 'ghost'];
+const variants: readonly ButtonVariant[] = ['primary', 'dark', 'outline', 'ghost', 'soft'];
 const sizes: readonly ButtonSize[] = ['sm', 'md', 'lg'];
 
 export function Showcase(): ReactElement {
@@ -33,7 +33,7 @@ export function Showcase(): ReactElement {
 
         <Card>
           <Stack gap={6}>
-            <h2 className="text-xl font-semibold">Button — 3 variants × 3 sizes</h2>
+            <h2 className="text-xl font-semibold">Button — 5 variants × 3 sizes</h2>
             {variants.map((variant) => (
               <Stack key={variant} direction="row" align="center" gap={4} wrap>
                 {sizes.map((size) => (
