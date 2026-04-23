@@ -33,8 +33,17 @@ export function formatOre(amountOre: number): string {
  * Used by KI-002 onwards. `formatOre` is kept for the legacy fixture path
  * until we unify the client on a single money representation.
  */
-export function formatAmount(amount: number, currency = 'SEK'): string {
-  // Cache by currency to avoid re-constructing Intl.NumberFormat on every call.
+export function formatAmount(
+  amount: number,
+  currency = 'SEK',
+  options: { omitCurrency?: boolean } = {},
+): string {
+  if (options.omitCurrency) {
+    // Return just the decimal part ("1 234,56") so callers can render the
+    // currency suffix with their own typography (see ItemRow / totals).
+    const formatter = getDecimalFormatter();
+    return formatter.format(amount);
+  }
   const formatter = getAmountFormatter(currency);
   return formatter.format(amount);
 }
@@ -52,4 +61,15 @@ function getAmountFormatter(currency: string): Intl.NumberFormat {
   });
   AMOUNT_FORMATTER_CACHE.set(currency, fmt);
   return fmt;
+}
+
+let DECIMAL_FORMATTER: Intl.NumberFormat | undefined;
+function getDecimalFormatter(): Intl.NumberFormat {
+  if (!DECIMAL_FORMATTER) {
+    DECIMAL_FORMATTER = new Intl.NumberFormat('sv-SE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  return DECIMAL_FORMATTER;
 }

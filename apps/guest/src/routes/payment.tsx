@@ -1,26 +1,22 @@
 /**
- * /t/:slug/:tableId/pay?order=<token> — the payment flow.
+ * /t/:slug/:tableId/pay?order=<token> — payment flow.
  *
- * State machine (driven by `phase`):
- *  1. 'select'   → PaymentMethodSelector. Guest picks Swish.
- *  2. 'initiate' → POST /payments/initiate mutation pending. Transient.
- *  3. 'await'    → SwishQR + polling. Waits for completed/expired.
- *  4. 'expired'  → timer hit 3 min. Offer retry or back-to-bill.
- *  5. 'error'    → initiate or status failed irrecoverably.
+ * Phases (local state machine):
+ *   'tip'     → dricks step (serif heading, 2×2 grid, summary)
+ *   'await'   → Swish QR + poll
+ *   'expired' → timer hit 3 min
  *
- * On `completed` we navigate to /success with receipt data passed as
- * router-state (no refetch needed — the poll response already has it).
- *
- * Why a local state machine instead of multiple nested routes?
- *  - All phases share the same order-context (slug/table/token).
- *  - Browser-back from a sub-route back into a live Swish flow would be
- *    confusing; a single route keeps the journey linear.
+ * We collapse the mocks' "payment-method picker" into the dricks-CTA:
+ * tapping "Fortsätt till betalning" starts a Swish flow directly. Card
+ * payments remain a discoverable fallback link under the CTA until
+ * BRIEF-API-005 (Stripe) ships.
  */
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ArrowRight, CreditCard } from 'lucide-react';
 import { Button, Card, Stack } from '@flowpay/ui';
 import type {
   PaymentInitiateSwishResponse,
@@ -31,7 +27,7 @@ import { initiatePayment } from '../api/payments';
 import { getOrder, orderQueryKey } from '../api/orders';
 import { OrderError } from '../components/OrderError';
 import { OrderSkeleton } from '../components/OrderSkeleton';
-import { PaymentMethodSelector } from '../components/PaymentMethodSelector';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { SwishQR } from '../components/SwishQR';
 import {
   TipSelector,
@@ -42,7 +38,7 @@ import { usePaymentStatus } from '../hooks/usePaymentStatus';
 import { formatAmount } from '../lib/format';
 
 type Phase =
-  | { kind: 'select' }
+  | { kind: 'tip' }
   | { kind: 'await'; init: PaymentInitiateSwishResponse }
   | { kind: 'expired'; init: PaymentInitiateSwishResponse };
 
@@ -80,32 +76,17 @@ function PaymentView({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  // KI-004 hand-off — when the guest comes from /split, the split route
-  // has already written a pending payment row server-side and returned
-  // the Swish-initiate shape as `state.preInitiated`. Skip our own
-  // initiate mutation and go straight to the await phase. `useState`'s
-  // initialiser runs once, so we can't accidentally re-start a Swish
-  // flow on route re-mount.
   const preInitiated = readPreInitiated(location.state);
+
   const [phase, setPhase] = useState<Phase>(() =>
-    preInitiated ? { kind: 'await', init: preInitiated } : { kind: 'select' },
+    preInitiated ? { kind: 'await', init: preInitiated } : { kind: 'tip' },
   );
 
-  // Re-read the order so this route is resilient to direct-nav (someone
-  // opens /pay?order=… in a new tab). React Query caches it, so if we
-  // came from the /t/:slug/:tableId route it's already warm.
   const orderQuery = useQuery({
     queryKey: orderQueryKey(token),
     queryFn: ({ signal }) => getOrder(token, signal),
   });
 
-  // KI-005 — tip state. Owned by the route (not TipSelector) so the
-  // "Försök igen" path after an expiry keeps the guest's tip instead of
-  // silently resetting it to the admin default. Seeded lazily once the
-  // order has loaded: `null` means "not yet seeded" (we show a spinner),
-  // `number` means "ready to pay with this tip". The seed uses
-  // `computeInitialTipAmount`, the same pure helper TipSelector uses to
-  // derive its initial selection, so both agree on first paint.
   const [tipAmount, setTipAmount] = useState<number | null>(() =>
     preInitiated ? 0 : null,
   );
@@ -122,9 +103,6 @@ function PaymentView({
     );
   }, [tipAmount, orderQuery.data]);
 
-  // Track whether the custom-input is in an invalid state — we can't
-  // derive this from `tipAmount` alone (the component clamps) so the
-  // component reports back via this callback. Blocks "Betala" while red.
   const [tipInvalid, setTipInvalid] = useState(false);
 
   const initiate = useMutation({
@@ -152,20 +130,15 @@ function PaymentView({
     { enabled: phase.kind === 'await' },
   );
 
-  // Redirect to /success when the payment completes — use a reducer-style
-  // effect so we only fire navigation once (React strict-mode double-invokes
-  // effects in dev, but navigation is idempotent).
   useEffect(() => {
     if (phase.kind !== 'await') return;
     const status = statusQuery.data?.status;
     if (status === 'completed') {
-      // Haptic feedback on success — wrapped in typeof-check so SSR / older
-      // iOS Safari doesn't trip a TypeError.
       if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         try {
           navigator.vibrate?.(50);
         } catch {
-          // Some browsers throw if the feature is blocked by permissions.
+          // ignore
         }
       }
       navigate(`/t/${slug}/${tableId}/success`, {
@@ -189,10 +162,6 @@ function PaymentView({
     orderQuery.data?.restaurant.name,
   ]);
 
-  // Explicit expiry watcher so we don't show a spinny dial once the deep
-  // link is dead. Two triggers:
-  //   (a) server returned `status: 'expired'` (preferred — wall-clock authority)
-  //   (b) client reached `expires_at` before the server flipped the row
   useEffect(() => {
     if (phase.kind !== 'await') return;
     if (statusQuery.data?.status === 'expired') {
@@ -226,15 +195,13 @@ function PaymentView({
     );
   }
   if (orderQuery.data.status === 'paid' || orderQuery.data.status === 'closed') {
-    // Bill was closed while the guest was on this screen — bounce them
-    // back to the bill view which shows the "redan betald" state.
     return (
       <FallbackShell>
         <p className="text-graphite">
           Den här notan är redan avslutad. Ingenting mer att betala.
         </p>
         <Button
-          variant="secondary"
+          variant="outline"
           size="md"
           block
           onClick={() => navigate(`/t/${slug}/${tableId}?order=${token}`)}
@@ -246,46 +213,44 @@ function PaymentView({
   }
 
   const { data: order } = orderQuery;
-  const amountLabel = formatAmount(order.total, order.currency);
+  const tableLabel = `Bord ${order.table.number ?? '—'}`;
+  const totalWithTip =
+    tipAmount !== null ? Math.round((order.total + tipAmount) * 100) / 100 : order.total;
+
+  const onBack = () => {
+    if (phase.kind === 'tip') {
+      navigate(`/t/${slug}/${tableId}?order=${encodeURIComponent(token)}`);
+    } else {
+      setPhase({ kind: 'tip' });
+    }
+  };
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-paper px-4 py-6 text-ink">
-      <header className="mb-6">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="text-sm text-graphite underline-offset-4 hover:underline"
-          aria-label="Tillbaka till notan"
-        >
-          ← Tillbaka
-        </button>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">Betala</h1>
-        <p className="mt-1 text-sm text-graphite">
-          {order.restaurant.name} · Bord {order.table.number ?? '—'}
-        </p>
-      </header>
+    <main className="flex min-h-dvh flex-col bg-paper pb-10 text-ink">
+      <ScreenHeader
+        onBack={onBack}
+        totalSteps={5}
+        step={phase.kind === 'tip' ? 3 : 4}
+      />
 
-      <Card padding="md">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm text-graphite">Att betala</p>
-          <p className="text-3xl font-semibold tabular-nums">{amountLabel}</p>
+      {phase.kind === 'tip' ? (
+        <div className="px-6 pt-5">
+          <h1 className="font-serif-italic text-[32px] font-semibold leading-tight text-ink">
+            Dricks till köket?
+          </h1>
+          <p className="mt-2 text-[14px] text-graphite">
+            Hela dricksen går direkt till teamet.
+          </p>
         </div>
-      </Card>
+      ) : null}
 
-      <div className="mt-6">
-        {phase.kind === 'select' ? (
+      <div className="mt-6 px-5">
+        {phase.kind === 'tip' ? (
           <Stack gap={4}>
             {initiate.isError ? (
               <PaymentInitiateErrorNotice error={initiate.error} />
             ) : null}
-            {/*
-             * KI-005 — tip selector sits BETWEEN the amount card above and
-             * the payment-method selector below (brief: "Placera mellan
-             * summa-sida och betalningsmetod-val"). We only render it when
-             * the tip state has been seeded from the order response (i.e.
-             * `tipAmount !== null`); the rest of the 'select' phase is
-             * quick enough to render without a skeleton.
-             */}
+
             {tipAmount !== null ? (
               <TipSelector
                 orderTotal={order.total}
@@ -298,29 +263,39 @@ function PaymentView({
                 disabled={initiate.isPending}
               />
             ) : null}
-            <PaymentMethodSelector
-              onSelect={(method) => initiate.mutate(method)}
-              /*
-               * Block "Betala" while:
-               *   - a mutation is in flight (existing behaviour),
-               *   - the tip hasn't been seeded yet (shouldn't happen post
-               *     load but the null-guard in `mutationFn` throws if it
-               *     does; being defensive at the UI too avoids a flash of
-               *     an error toast on a very cold cache),
-               *   - the custom tip input is out of range
-               *     (> TIP_CUSTOM_MAX_PERCENT or NaN). The component still
-               *     flags it inline; this stops the guest from tapping
-               *     Betala past the red error.
-               */
-              isSubmitting={initiate.isPending}
-              disabled={tipAmount === null || tipInvalid}
-            />
+
+            <Button
+              variant="primary"
+              size="lg"
+              block
+              onClick={() => initiate.mutate('swish')}
+              disabled={initiate.isPending || tipAmount === null || tipInvalid}
+              trailingIcon={<ArrowRight size={18} strokeWidth={2.2} />}
+              aria-label={`Fortsätt till Swish — ${formatAmount(totalWithTip, order.currency)}`}
+            >
+              {initiate.isPending ? 'Startar Swish…' : 'Fortsätt till betalning'}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="md"
+              block
+              onClick={() => initiate.mutate('card')}
+              disabled={initiate.isPending || tipAmount === null || tipInvalid}
+              leadingIcon={<CreditCard size={16} strokeWidth={1.8} />}
+            >
+              Betala med kort istället
+            </Button>
           </Stack>
         ) : null}
 
         {phase.kind === 'await' ? (
           <AwaitingSwish
             init={phase.init}
+            amount={useMemoAmount(statusQuery.data, order.total + (tipAmount ?? 0))}
+            currency={order.currency}
+            restaurantName={order.restaurant.name}
+            tableLabel={tableLabel}
             pollError={statusQuery.isError ? statusQuery.error : null}
           />
         ) : null}
@@ -329,7 +304,7 @@ function PaymentView({
           <ExpiredState
             onRetry={() => {
               initiate.reset();
-              setPhase({ kind: 'select' });
+              setPhase({ kind: 'tip' });
             }}
             onBack={() => navigate(`/t/${slug}/${tableId}?order=${token}`)}
           />
@@ -339,11 +314,31 @@ function PaymentView({
   );
 }
 
+function useMemoAmount(
+  statusData: { amount?: number; tip_amount?: number } | undefined,
+  fallback: number,
+): number {
+  return useMemo(() => {
+    if (!statusData) return fallback;
+    const a = statusData.amount ?? 0;
+    const t = statusData.tip_amount ?? 0;
+    return a + t || fallback;
+  }, [statusData, fallback]);
+}
+
 function AwaitingSwish({
   init,
+  amount,
+  currency,
+  restaurantName,
+  tableLabel,
   pollError,
 }: {
   init: PaymentInitiateSwishResponse;
+  amount: number;
+  currency: string;
+  restaurantName?: string;
+  tableLabel?: string;
   pollError: unknown;
 }) {
   return (
@@ -352,10 +347,14 @@ function AwaitingSwish({
         qrDataUrl={init.qr_data_url}
         swishUrl={init.swish_url}
         reference={init.reference}
+        amount={amount}
+        currency={currency}
+        restaurantName={restaurantName}
+        tableLabel={tableLabel}
       />
 
       <motion.div
-        className="rounded-md bg-hairline/30 px-4 py-3 text-center text-sm text-graphite"
+        className="rounded-2xl border border-hairline bg-shell/60 px-4 py-3 text-center text-[13px] text-graphite"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
@@ -363,8 +362,6 @@ function AwaitingSwish({
       </motion.div>
 
       {pollError ? (
-        // Polling errors are usually blips — surface them quietly without
-        // yanking the QR off the screen.
         <p role="status" className="text-center text-xs text-graphite">
           Tappat uppkoppling till servern. Försöker igen…
         </p>
@@ -381,15 +378,17 @@ function ExpiredState({
   onBack: () => void;
 }) {
   return (
-    <Card padding="md">
+    <Card variant="paper" radius="lg" padding="lg">
       <Stack gap={4}>
         <div>
-          <h2 className="text-xl font-semibold">Tiden gick ut</h2>
-          <p className="mt-2 text-graphite">
+          <h2 className="font-serif-italic text-[26px] font-semibold leading-tight">
+            Tiden gick ut
+          </h2>
+          <p className="mt-2 text-[14px] text-graphite">
             Swish-begäran har gått ut. Starta om för att försöka igen.
           </p>
         </div>
-        <Button variant="primary" size="md" block onClick={onRetry}>
+        <Button variant="primary" size="lg" block onClick={onRetry}>
           Försök igen
         </Button>
         <Button variant="ghost" size="md" block onClick={onBack}>
@@ -413,7 +412,7 @@ function PaymentInitiateErrorNotice({ error }: { error: unknown }) {
   return (
     <div
       role="alert"
-      className="rounded-md border border-hairline bg-paper px-4 py-3 text-sm text-ink"
+      className="rounded-2xl border border-hairline bg-paper px-4 py-3 text-sm text-ink"
     >
       {message}
     </div>
@@ -432,19 +431,14 @@ function PulsingDot() {
 
 function FallbackShell({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md items-center bg-paper px-4 py-10 text-ink">
-      <Card padding="md" className="w-full">
+    <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+      <Card variant="paper" radius="lg" padding="lg" className="w-full max-w-sm">
         <Stack gap={4}>{children}</Stack>
       </Card>
     </main>
   );
 }
 
-/**
- * Minimal structural guard — we only trust router-state from our own
- * /split route, but the browser can stuff anything in here across a
- * hard refresh, so duck-type the shape rather than cast-and-pray.
- */
 function readPreInitiated(
   state: unknown,
 ): PaymentInitiateSwishResponse | null {
@@ -463,4 +457,3 @@ function readPreInitiated(
   }
   return null;
 }
-

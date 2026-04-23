@@ -1,21 +1,14 @@
 /**
- * SplitPortion — "Betala en del" picker.
+ * SplitPortion — "Eget belopp" picker.
  *
- * Guest picks an arbitrary SEK amount between a floor (MIN_PORTION_SEK)
- * and the current `remaining`. Brief keeps the floor at 50 kr to avoid
- * "1 kr splits" gumming up the Swish queue.
- *
- * UX:
- *   - A range slider snapping to 10 kr plus an editable number input
- *     (`inputmode="decimal"`) for precise amounts.
- *   - Quick-chip shortcuts: 100 / 200 / "kvar/2" / "kvar" so the common
- *     cases don't need the slider at all.
- *   - Overpay protection is belt-and-braces: the slider can't exceed
- *     `remaining`, and we disable submit if the input goes over.
+ * Layout matches the mock:
+ *   • White card shows "DIN DEL" label + hero serif amount + slider
+ *   • Quick-select pills: 1/4, 1/3, 1/2, 2/3 of the remaining
+ *   • "Kvar efter din del" helper line
  */
 
 import { useEffect } from 'react';
-import { Card, Stack } from '@flowpay/ui';
+import { Card, cn } from '@flowpay/ui';
 
 import { formatAmount } from '../lib/format';
 
@@ -25,7 +18,6 @@ const SLIDER_STEP_SEK = 10;
 interface SplitPortionProps {
   remaining: number;
   currency: string;
-  /** Controlled value (decimal SEK). */
   value: number;
   onChange: (value: number) => void;
 }
@@ -36,8 +28,6 @@ export function SplitPortion({
   value,
   onChange,
 }: SplitPortionProps) {
-  // If the `remaining` drops below the current input (another splitter paid
-  // in parallel while this guest was tinkering), nudge the value down.
   useEffect(() => {
     if (value > remaining) {
       onChange(Math.max(MIN_PORTION_SEK, round2(remaining)));
@@ -46,86 +36,99 @@ export function SplitPortion({
 
   const floor = Math.min(MIN_PORTION_SEK, remaining);
   const ceiling = Math.max(MIN_PORTION_SEK, round2(remaining));
-  // Snap slider to step, but never above `remaining`.
   const sliderValue = Math.min(
     Math.max(Math.round(value / SLIDER_STEP_SEK) * SLIDER_STEP_SEK, floor),
     ceiling,
   );
 
-  const half = Math.max(MIN_PORTION_SEK, round2(remaining / 2));
-  const chips = [100, 200, half, ceiling].filter(
-    (v, idx, arr) => v >= MIN_PORTION_SEK && v <= ceiling && arr.indexOf(v) === idx,
-  );
+  const presets = [
+    { label: '¼', value: round2(remaining / 4) },
+    { label: '⅓', value: round2(remaining / 3) },
+    { label: '½', value: round2(remaining / 2) },
+    { label: '⅔', value: round2((remaining * 2) / 3) },
+  ].filter((p) => p.value >= MIN_PORTION_SEK && p.value <= ceiling);
+
+  const leftover = Math.max(0, round2(remaining - value));
 
   return (
-    <Stack gap={4}>
-      <Card padding="md">
-        <Stack gap={4}>
-          <label className="block" htmlFor="split-portion-input">
-            <span className="text-sm text-graphite">Belopp</span>
-            <div className="mt-1 flex items-baseline gap-2">
-              <input
-                id="split-portion-input"
-                type="number"
-                inputMode="decimal"
-                min={floor}
-                max={ceiling}
-                step="0.01"
-                value={Number.isFinite(value) ? value : ''}
-                onChange={(e) => {
-                  const parsed = Number(e.target.value);
-                  if (Number.isFinite(parsed)) {
-                    onChange(round2(parsed));
-                  }
-                }}
-                className="w-32 border-b-2 border-hairline bg-transparent pb-1 text-3xl font-semibold tabular-nums outline-none focus:border-accent"
-                aria-label="Belopp att betala"
-              />
-              <span className="text-lg text-graphite">kr</span>
-            </div>
-          </label>
-
-          <input
-            type="range"
-            min={floor}
-            max={ceiling}
-            step={SLIDER_STEP_SEK}
-            value={sliderValue}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="w-full accent-accent"
-            aria-label="Justera belopp med reglage"
-          />
-
-          <div
-            role="group"
-            aria-label="Snabbval för belopp"
-            className="flex flex-wrap gap-2"
-          >
-            {chips.map((chip) => {
-              const active = Math.abs(chip - value) < 0.01;
-              return (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => onChange(chip)}
-                  className={
-                    active
-                      ? 'rounded-full border border-ink bg-ink px-4 py-1.5 text-xs font-semibold text-paper'
-                      : 'rounded-full border border-hairline px-4 py-1.5 text-xs text-ink hover:border-ink'
-                  }
-                >
-                  {formatAmount(chip, currency)}
-                </button>
-              );
-            })}
+    <div className="space-y-4">
+      <Card variant="paper" radius="lg" padding="lg" elevation="raised">
+        <div className="text-center">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-graphite">
+            Din del
           </div>
-        </Stack>
+          <div className="mt-2 whitespace-nowrap tabular-nums">
+            <span className="font-serif text-[48px] font-semibold leading-none text-ink">
+              {formatAmount(value, currency, { omitCurrency: true })}
+            </span>
+            <span className="ml-1 text-[18px] font-normal text-graphite">kr</span>
+          </div>
+        </div>
+
+        <input
+          type="range"
+          min={floor}
+          max={ceiling}
+          step={SLIDER_STEP_SEK}
+          value={sliderValue}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="mt-6 w-full accent-ink"
+          aria-label="Justera belopp med reglage"
+          aria-valuemin={floor}
+          aria-valuemax={ceiling}
+          aria-valuenow={sliderValue}
+        />
+
+        <div className="mt-2 flex justify-between text-[12px] text-graphite">
+          <span>{formatAmount(floor, currency)}</span>
+          <span>{formatAmount(ceiling, currency)}</span>
+        </div>
+      </Card>
+
+      {presets.length > 0 ? (
+        <div
+          role="group"
+          aria-label="Snabbval för belopp"
+          className="flex flex-wrap gap-2"
+        >
+          {presets.map(({ label, value: chipValue }) => {
+            const active = Math.abs(chipValue - value) < 0.5;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onChange(chipValue)}
+                className={cn(
+                  'rounded-full border px-3.5 py-1.5 text-[13px] font-medium tabular-nums',
+                  'transition-colors',
+                  active
+                    ? 'border-ink bg-ink text-paper'
+                    : 'border-hairline bg-paper text-ink hover:bg-shell',
+                )}
+              >
+                <span className="font-serif mr-1.5 text-[15px]">{label}</span>
+                <span>{formatAmount(chipValue, currency, { omitCurrency: true })}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      <Card variant="shell" radius="lg" padding="md">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[13px] text-graphite">Kvar efter din del</span>
+          <span className="whitespace-nowrap tabular-nums">
+            <span className="text-[15px] font-medium text-ink">
+              {formatAmount(leftover, currency, { omitCurrency: true })}
+            </span>
+            <span className="ml-0.5 text-[11px] font-normal text-graphite">kr</span>
+          </span>
+        </div>
       </Card>
 
       {value > remaining + 0.005 ? (
         <p role="alert" className="text-xs text-graphite">
           Beloppet är högre än det som är kvar ({formatAmount(remaining, currency)}).
-          Minska beloppet för att fortsätta.
         </p>
       ) : null}
       {value < MIN_PORTION_SEK && remaining >= MIN_PORTION_SEK ? (
@@ -133,7 +136,7 @@ export function SplitPortion({
           Minsta belopp är {formatAmount(MIN_PORTION_SEK, currency)}.
         </p>
       ) : null}
-    </Stack>
+    </div>
   );
 }
 
@@ -143,9 +146,6 @@ export function isPortionValid(
 ): boolean {
   if (!Number.isFinite(value) || value <= 0) return false;
   if (value > remaining + 0.005) return false;
-  // Only enforce the floor when `remaining` itself is above the floor.
-  // If the remaining balance is e.g. 37 kr the guest MUST be allowed to
-  // pay that final 37 kr even though it's below the 50 kr minimum.
   if (remaining >= MIN_PORTION_SEK && value < MIN_PORTION_SEK) return false;
   return true;
 }

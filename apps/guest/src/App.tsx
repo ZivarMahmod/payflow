@@ -25,14 +25,16 @@ import { NotFoundRoute } from './routes/not-found';
  */
 export function App() {
   return (
-    <Routes>
-      <Route path="/t/:slug/:tableId" element={<OrderRoute />} />
-      <Route path="/t/:slug/:tableId/split" element={<SplitRoute />} />
-      <Route path="/t/:slug/:tableId/pay" element={<PaymentRoute />} />
-      <Route path="/t/:slug/:tableId/success" element={<SuccessRoute />} />
-      <Route path="/t/:slug/:tableId/feedback" element={<FeedbackRoute />} />
-      <Route path="/" element={<NotFoundRoute />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <div className="phone-shell">
+      <Routes>
+        <Route path="/t/:slug/:tableId" element={<OrderRoute />} />
+        <Route path="/t/:slug/:tableId/split" element={<SplitRoute />} />
+        <Route path="/t/:slug/:tableId/pay" element={<PaymentRoute />} />
+        <Route path="/t/:slug/:tableId/success" element={<SuccessRoute />} />
+        <Route path="/t/:slug/:tableId/feedback" element={<FeedbackRoute />} />
+        <Route path="/" element={<NotFoundRoute />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </div>
   );
 }

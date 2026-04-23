@@ -124,15 +124,17 @@ export function FeedbackRoute() {
   // Missing payment id → friendly fallback. Must precede any interactive UI.
   if (!paymentId) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md items-center bg-paper px-4 py-10 text-ink">
-        <Card padding="md" className="w-full">
+      <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+        <Card variant="paper" radius="lg" padding="lg" className="w-full max-w-sm">
           <Stack gap={4}>
-            <h1 className="text-xl font-semibold">Vi saknar ditt kvitto</h1>
-            <p className="text-graphite">
+            <h1 className="font-serif-italic text-[26px] font-semibold leading-tight">
+              Vi saknar ditt kvitto
+            </h1>
+            <p className="text-[14px] text-graphite">
               Vi hittar ingen betalning att koppla feedback till. Du kan
               stänga fliken.
             </p>
-            <Button variant="ghost" size="md" block onClick={onGoHome}>
+            <Button variant="outline" size="md" block onClick={onGoHome}>
               Gå tillbaka
             </Button>
           </Stack>
@@ -147,32 +149,46 @@ export function FeedbackRoute() {
     if (phase === 'done' || phase === 'already') return null;
     if (rating === 0) {
       return {
-        title: restaurantName
-          ? `Hur var det hos ${restaurantName}?`
-          : 'Hur var det?',
-        sub: 'Tap-rating, 30 sekunder.',
+        eyebrow: 'Betalad',
+        title: 'Hur var kvällen?',
+        sub: restaurantName
+          ? `Ditt svar hjälper ${restaurantName} direkt.`
+          : 'Ditt svar hjälper köket direkt.',
       };
     }
-    return null;
+    if (rating >= 4) {
+      return {
+        eyebrow: 'Betalad',
+        title: 'Vill du dela detta på Google?',
+        sub: 'Ett tryck. Hjälper små restauranger enormt.',
+      };
+    }
+    return {
+      eyebrow: 'Betalad',
+      title: 'Berätta vad som kunde varit bättre',
+      sub: 'Vi skickar det direkt till köket — aldrig offentligt.',
+    };
   }, [phase, rating, restaurantName]);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-paper px-4 py-10 text-ink">
-      <Stack gap={6}>
-        {headerCopy ? (
-          <motion.header
-            className="text-center"
-            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {headerCopy.title}
-            </h1>
-            <p className="mt-1 text-sm text-graphite">{headerCopy.sub}</p>
-          </motion.header>
-        ) : null}
+    <main className="flex min-h-dvh flex-col bg-paper px-6 pb-10 pt-10 text-ink">
+      {headerCopy ? (
+        <motion.header
+          initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-mint">
+            {headerCopy.eyebrow}
+          </div>
+          <h1 className="mt-2 font-serif-italic text-[30px] font-semibold leading-tight">
+            {headerCopy.title}
+          </h1>
+          <p className="mt-2 text-[14px] text-graphite">{headerCopy.sub}</p>
+        </motion.header>
+      ) : null}
 
+      <div className="mt-8 space-y-6">
         {phase === 'rating' || (phase === 'decision' && rating > 0) ? (
           <StarRating
             value={rating}
@@ -242,22 +258,21 @@ export function FeedbackRoute() {
         ) : null}
 
         {/*
-          Skip / close button — always present, never intrusive. Hidden
-          on the terminal phases because the card there already owns the
-          primary action.
+          Skip / close "text link" — always present for the rating phase.
+          For the decision phase we hide it because the sub-prompts now
+          carry their own "Hoppa över" link in-card.
         */}
-        {phase === 'rating' || phase === 'decision' ? (
-          <Button
-            variant="ghost"
-            size="md"
-            block
+        {phase === 'rating' ? (
+          <button
+            type="button"
             onClick={onGoHome}
             disabled={mutation.isPending}
+            className="mt-2 block w-full text-center text-[13px] text-graphite underline-offset-4 hover:underline disabled:opacity-50"
           >
             Hoppa över
-          </Button>
+          </button>
         ) : null}
-      </Stack>
+      </div>
     </main>
   );
 }
@@ -272,13 +287,13 @@ function ThankYouCard({
   onDone: () => void;
 }) {
   return (
-    <Card padding="md">
+    <Card variant="paper" radius="lg" padding="lg">
       <Stack gap={4}>
-        <header className="text-center">
-          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-          {body ? <p className="mt-1 text-sm text-graphite">{body}</p> : null}
-        </header>
-        <Button variant="ghost" size="md" block onClick={onDone}>
+        <h2 className="font-serif-italic text-[26px] font-semibold leading-tight">
+          {title}
+        </h2>
+        {body ? <p className="text-[14px] text-graphite">{body}</p> : null}
+        <Button variant="outline" size="md" block onClick={onDone}>
           Klar
         </Button>
       </Stack>

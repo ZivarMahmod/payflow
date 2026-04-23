@@ -1,36 +1,22 @@
-/**
- * SplitModeSelector — three big buttons to pick how to split the bill.
- *
- * Modes (BRIEF-KI-004):
- *   - equal   "Dela lika"          — N people, I pay 1 portion
- *   - portion "Betala en del"      — I pick an arbitrary amount
- *   - items   "Välj mina rätter"   — I pick specific order lines
- *
- * UX:
- *   - Big 64px targets, thumb-first.
- *   - The currently-active mode gets the primary-variant treatment so the
- *     guest can always see which flow they're in.
- *   - Aria-pressed is on instead of role=radio to keep voice-over's label
- *     short ("Dela lika, vald" vs "radio button, 1 of 3").
- */
-
-import { Button, Stack } from '@flowpay/ui';
-
+import { ChevronRight, List, Sliders, Users } from 'lucide-react';
+import { cn } from '@flowpay/ui';
 import type { SplitType } from '@flowpay/schemas';
 
 interface SplitModeSelectorProps {
-  /** Currently-selected mode. `null` until the guest picks one. */
   value: SplitType | null;
-  /** Called with the new mode on tap. */
   onChange: (mode: SplitType) => void;
-  /** Disable while any mutation is in flight. */
   disabled?: boolean;
 }
 
-const MODES: Array<{ key: SplitType; label: string; hint: string }> = [
-  { key: 'equal', label: 'Dela lika', hint: 'Alla betalar lika mycket' },
-  { key: 'portion', label: 'Betala en del', hint: 'Jag väljer ett belopp' },
-  { key: 'items', label: 'Välj mina rätter', hint: 'Jag plockar rader från notan' },
+const MODES: Array<{
+  key: SplitType;
+  label: string;
+  hint: string;
+  Icon: typeof Users;
+}> = [
+  { key: 'equal', label: 'Lika', hint: 'Dela totalen jämnt', Icon: Users },
+  { key: 'items', label: 'Välj rader', hint: 'Varje gäst väljer sina rätter', Icon: List },
+  { key: 'portion', label: 'Eget belopp', hint: 'Dra för att välja din del', Icon: Sliders },
 ];
 
 export function SplitModeSelector({
@@ -39,28 +25,42 @@ export function SplitModeSelector({
   disabled = false,
 }: SplitModeSelectorProps) {
   return (
-    <Stack gap={3} aria-label="Välj hur du vill splitta notan">
-      {MODES.map(({ key, label, hint }) => {
+    <div className="space-y-3" aria-label="Välj hur du vill splitta notan">
+      {MODES.map(({ key, label, hint, Icon }) => {
         const isActive = value === key;
         return (
-          <Button
+          <button
             key={key}
-            // `primary` on active, `secondary` otherwise — so the tap-target
-            // always feels like a real button even when unselected.
-            variant={isActive ? 'primary' : 'secondary'}
-            size="lg"
-            block
+            type="button"
             onClick={() => onChange(key)}
             disabled={disabled}
             aria-pressed={isActive}
+            className={cn(
+              'flex w-full items-center gap-4 rounded-2xl border px-4 py-4 text-left',
+              'transition-[background-color,border-color,transform] duration-150 active:translate-y-px',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-paper',
+              'disabled:pointer-events-none disabled:opacity-50',
+              isActive
+                ? 'border-ink bg-paper shadow-paper'
+                : 'border-hairline bg-paper hover:bg-shell',
+            )}
           >
-            <span className="flex flex-col items-start gap-0.5 text-left">
-              <span className="font-semibold">{label}</span>
-              <span className="text-xs font-normal text-graphite">{hint}</span>
-            </span>
-          </Button>
+            <div
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                'bg-accent-soft text-accent',
+              )}
+            >
+              <Icon size={20} strokeWidth={1.8} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[16px] font-semibold text-ink">{label}</div>
+              <div className="text-[13px] text-graphite">{hint}</div>
+            </div>
+            <ChevronRight size={18} className="shrink-0 text-graphite" strokeWidth={1.8} />
+          </button>
         );
       })}
-    </Stack>
+    </div>
   );
 }

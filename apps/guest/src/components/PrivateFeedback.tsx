@@ -75,18 +75,15 @@ export function PrivateFeedback({
   };
 
   return (
-    <Card padding="md">
+    <Card variant="paper" radius="lg" padding="lg" elevation="raised">
       <form onSubmit={onFormSubmit} noValidate>
         <Stack gap={4}>
-          <header className="text-center">
-            <h2 className="text-lg font-semibold">Vad kan vi göra bättre?</h2>
-            <p className="mt-1 text-sm text-graphite">
-              Bara personalen ser det här. Det går inte vidare till Google.
-            </p>
-          </header>
+          <p className="text-[13px] leading-relaxed text-graphite">
+            Bara personalen ser det här. Det går inte vidare till Google.
+          </p>
 
-          <Stack gap={3}>
-            <label className="text-sm font-medium" htmlFor="private-feedback-text">
+          <Stack gap={2}>
+            <label className="text-[12px] font-medium text-graphite" htmlFor="private-feedback-text">
               Berätta gärna
             </label>
             <textarea
@@ -95,14 +92,13 @@ export function PrivateFeedback({
               onChange={(e) => setText(e.target.value)}
               rows={4}
               maxLength={2000}
-              placeholder=""
-              className="w-full resize-y rounded-md border border-hairline bg-paper px-3 py-2 text-ink shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="w-full resize-y rounded-xl border border-hairline bg-paper px-3 py-2 text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
               disabled={submitting}
             />
           </Stack>
 
-          <Stack gap={3}>
-            <label className="text-sm font-medium" htmlFor="private-feedback-email">
+          <Stack gap={2}>
+            <label className="text-[12px] font-medium text-graphite" htmlFor="private-feedback-email">
               E-post (valfritt)
             </label>
             <Input
@@ -119,6 +115,7 @@ export function PrivateFeedback({
               aria-invalid={emailError}
               aria-describedby={emailError ? 'private-feedback-email-error' : undefined}
               disabled={submitting}
+              className="rounded-xl"
             />
             {emailError ? (
               <p id="private-feedback-email-error" className="text-sm text-accent">
@@ -127,8 +124,8 @@ export function PrivateFeedback({
             ) : null}
           </Stack>
 
-          <Stack gap={3}>
-            <label className="text-sm font-medium" htmlFor="private-feedback-phone">
+          <Stack gap={2}>
+            <label className="text-[12px] font-medium text-graphite" htmlFor="private-feedback-phone">
               Telefon (valfritt)
             </label>
             <Input
@@ -140,29 +137,28 @@ export function PrivateFeedback({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={submitting}
+              className="rounded-xl"
             />
           </Stack>
 
           <Stack gap={2}>
             <Button
-              variant="primary"
-              size="md"
+              variant="dark"
+              size="lg"
               block
               type="submit"
               disabled={submitting}
             >
               {submitting ? 'Skickar…' : hasAny ? 'Skicka' : 'Skicka utan meddelande'}
             </Button>
-            <Button
-              variant="ghost"
-              size="md"
-              block
+            <button
               type="button"
               onClick={onSkip}
               disabled={submitting}
+              className="text-center text-[13px] text-graphite underline-offset-4 hover:underline disabled:opacity-50"
             >
               Hoppa över
-            </Button>
+            </button>
           </Stack>
         </Stack>
       </form>

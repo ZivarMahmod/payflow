@@ -1,77 +1,111 @@
 /**
- * SwishQR — the "sanning-ögonblicket" component.
+ * SwishQR — the sanning-ögonblick component.
  *
- * Shows:
- *  1. The Swish-bank QR code (scannable from another phone).
- *  2. A big "Öppna Swish" button that deep-links into the Swish app.
- *  3. The payment reference (FP-XXXX) so the guest can sanity-check.
+ * Mock (screen 5): orange "S" chip with SWISH label + amount, a large
+ * rounded QR card with the FlowPay F inset in the center, a caption,
+ * a to/meddelande info card, and an orange CTA.
  *
- * Constraints from BRIEF-KI-003:
- *  - QR must be ≥ 250×250px so it scans at arm's length.
- *  - "Öppna Swish" MUST be a user-gesture handler — iOS blocks deep-link
- *    nav from timers/effects. So we render it as a plain `<a href>` with
- *    the deep link, which browsers treat as a user-gesture click. We do
- *    NOT `router.push(swish_url)` in an effect — that path silently fails
- *    on Safari and breaks trust in the first five seconds of the flow.
- *  - Never auto-open Swish. Let the guest tap.
- *
- * The API returns `qr_data_url` already encoded as a `data:` URL — we just
- * render it. That keeps the browser bundle free of a QR library (the API
- * owns encoding with `qrcode`, per BRIEF-API-003).
+ * iOS constraint: the "Öppna Swish" CTA MUST be a real <a href> so iOS
+ * treats the tap as a user gesture — deep-link nav from timers/effects
+ * silently fails on Safari.
  */
 
-import { Card, Stack, buttonStyles } from '@flowpay/ui';
+import { Card, buttonStyles, cn } from '@flowpay/ui';
+
+import { FlowpayMark } from './Brand';
+import { Amount } from './Amount';
 
 interface SwishQRProps {
-  /** `data:image/png;base64,…` (or svg+xml) from the API. */
   qrDataUrl: string;
-  /** `swish://payment?…` deep link. Drives the "Öppna Swish" button. */
   swishUrl: string;
-  /** Short human-readable reference — shown as "Ref: FP-ABCD". */
   reference: string;
+  amount?: number;
+  currency?: string;
+  restaurantName?: string;
+  tableLabel?: string;
 }
 
-export function SwishQR({ qrDataUrl, swishUrl, reference }: SwishQRProps) {
+export function SwishQR({
+  qrDataUrl,
+  swishUrl,
+  reference,
+  amount,
+  currency = 'SEK',
+  restaurantName,
+  tableLabel,
+}: SwishQRProps) {
   return (
-    <Card padding="md">
-      <Stack gap={4}>
-        <div className="flex flex-col items-center gap-3">
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-white font-serif text-[22px] font-semibold italic"
+        >
+          S
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-graphite">
+            Swish
+          </div>
+          {typeof amount === 'number' ? (
+            <div className="text-[17px] font-semibold">
+              <Amount value={amount} currency={currency} size="lg" />
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <Card variant="paper" radius="xl" padding="lg" elevation="raised" className="bg-white">
+        <div className="relative mx-auto w-full max-w-[280px]">
           <img
             src={qrDataUrl}
             alt="Swish-QR-kod — skanna med en annan mobil"
-            width={260}
-            height={260}
-            className="block h-[260px] w-[260px] rounded-md bg-white p-2"
-            // QR contrast relies on white bg — force it even in dark mode.
+            width={280}
+            height={280}
+            className="block h-full w-full rounded-2xl bg-white"
             style={{ imageRendering: 'pixelated' }}
           />
-          <p className="text-center text-sm text-graphite">
-            Skanna med en annan mobil — eller tryck nedan för att öppna Swish
-            direkt.
-          </p>
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <FlowpayMark size={56} inverted className="shadow-paper ring-4 ring-white" />
+          </div>
         </div>
-
-        {/*
-          Anchor styled as a button — NOT <a><button/></a> (invalid nested
-          interactives). iOS requires a user-gesture for custom-scheme
-          navigation to fire. `<a href="swish://…">` counts as that gesture.
-          `target="_self"` avoids popup-blocked behaviour on Android Chrome.
-          rel="noopener" is a good hygiene default even for non-http schemes.
-        */}
-        <a
-          href={swishUrl}
-          target="_self"
-          rel="noopener"
-          aria-label="Öppna Swish-appen för att betala"
-          className={buttonStyles({ variant: 'primary', size: 'lg', block: true })}
-        >
-          Öppna Swish
-        </a>
-
-        <p className="text-center text-xs text-graphite">
-          Ref: <span className="font-mono tabular-nums">{reference}</span>
+        <p className="mt-4 text-center text-[13px] text-graphite">
+          Skanna QR i Swish, eller tryck Öppna Swish om du betalar från samma telefon.
         </p>
-      </Stack>
-    </Card>
+      </Card>
+
+      {restaurantName || tableLabel ? (
+        <Card variant="paper" radius="lg" padding="sm">
+          {restaurantName ? (
+            <div className="flex items-baseline justify-between px-2 py-1">
+              <span className="text-[12px] text-graphite">Till</span>
+              <span className="text-[14px] font-semibold">{restaurantName}</span>
+            </div>
+          ) : null}
+          {tableLabel ? (
+            <div className="flex items-baseline justify-between border-t border-hairline px-2 py-1">
+              <span className="text-[12px] text-graphite">Meddelande</span>
+              <span className="text-[14px] font-medium tabular-nums">
+                FP · {tableLabel}
+              </span>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
+
+      <a
+        href={swishUrl}
+        target="_self"
+        rel="noopener"
+        aria-label="Öppna Swish-appen för att betala"
+        className={cn(buttonStyles({ variant: 'primary', size: 'lg', block: true }))}
+      >
+        Öppna Swish-appen
+      </a>
+
+      <p className="text-center text-[11px] text-graphite">
+        Ref: <span className="font-mono tabular-nums">{reference}</span>
+      </p>
+    </div>
   );
 }

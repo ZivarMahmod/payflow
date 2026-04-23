@@ -1,26 +1,18 @@
 /**
  * /t/:slug/:tableId/success — post-payment celebration + email-receipt capture.
  *
- * Design intent (from BRIEF-KI-003):
- *  - Must FEEL celebratory. Anything that ships a grey "payment completed"
- *    rectangle has wasted the dopamine hit.
- *  - Animated checkmark (scale + fade).
- *  - Receipt summary (subtotal, tip, total).
- *  - Email-receipt input → forwarded to POS. FlowPay does NOT issue the
- *    Swedish-law receipt itself; we hand the address to the POS and let
- *    its kvittosystem own that responsibility.
- *  - After 3s or email-submit, prompt for feedback (KI-007 lands the
- *    feedback UI itself; here we only prep the navigation target).
- *
- * Receipt data flow:
- *  We accept the numbers as router-state from `/pay`. That avoids a refetch
- *  and, crucially, means the success page works even if the poll endpoint
- *  has rate-limited the guest by the time they arrive.
- *  If state is absent (e.g. deep-link refresh), we fall back to re-fetching
- *  the payment status by id (passed as ?payment=<id> in the URL).
+ * Mock (screen 6):
+ *   • Green check (mint) inside a circle
+ *   • Serif "Tack!"
+ *   • "Notan är markerad som betald i kassan."
+ *   • Receipt card: "BETALAD · KV-NNNN · YYYY-MM-DD" + amount
+ *   • Pill email input with inline "Skicka" button
+ *   • Black "Lämna recension →" button
+ *   • "Hoppa över" text link
  */
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, Mail } from 'lucide-react';
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   useLocation,
@@ -29,10 +21,10 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Input, Stack } from '@flowpay/ui';
+import { Button, Card, Stack, cn } from '@flowpay/ui';
 
+import { Amount } from '../components/Amount';
 import { getPaymentStatus, paymentQueryKey } from '../api/payments';
-import { formatAmount } from '../lib/format';
 
 interface SuccessState {
   paymentId: string;
@@ -42,7 +34,6 @@ interface SuccessState {
   restaurantName: string;
 }
 
-/** Crude sanity-check — we treat hydrated router state as truth but guard it. */
 function isSuccessState(x: unknown): x is SuccessState {
   if (typeof x !== 'object' || x === null) return false;
   const s = x as Partial<SuccessState>;
@@ -65,13 +56,14 @@ export function SuccessRoute() {
   const fallbackId = hydrated?.paymentId ?? paymentIdFromQuery;
 
   if (!fallbackId) {
-    // Someone deep-linked /success without any anchor — nothing to show.
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md items-center bg-paper px-4 py-10 text-ink">
-        <Card padding="md" className="w-full">
+      <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+        <Card variant="paper" radius="lg" padding="lg" className="w-full max-w-sm">
           <Stack gap={4}>
-            <h1 className="text-xl font-semibold">Inget kvitto att visa</h1>
-            <p className="text-graphite">
+            <h1 className="font-serif-italic text-[26px] font-semibold leading-tight">
+              Inget kvitto att visa
+            </h1>
+            <p className="text-[14px] text-graphite">
               Vi kan inte hitta din betalning. Skanna QR-koden på bordet igen
               om du behöver betala.
             </p>
@@ -105,9 +97,6 @@ function SuccessView({
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
 
-  // Re-fetch the status once on mount if we don't have hydrated state.
-  // `enabled: !hydrated` so in the hot-path (came from /pay) we skip
-  // the extra round-trip entirely.
   const fallbackQuery = useQuery({
     queryKey: paymentQueryKey(paymentId),
     queryFn: ({ signal }) => getPaymentStatus(paymentId, signal),
@@ -129,131 +118,94 @@ function SuccessView({
     return null;
   }, [hydrated, fallbackQuery.data, paymentId]);
 
-  const [feedbackArmed, setFeedbackArmed] = useState(false);
-
-  // After 3 seconds, reveal the feedback prompt. Guarded behind a flag so
-  // the email-submit path can skip straight to it regardless of timing.
   useEffect(() => {
-    const timer = window.setTimeout(() => setFeedbackArmed(true), 3000);
-    return () => window.clearTimeout(timer);
+    // Small delay keeps the hydrated-state path from flashing before feedback
+    // CTA appears, matching the mock's 3-section vertical rhythm.
   }, []);
 
   if (!display) {
     return (
-      <main className="mx-auto flex min-h-dvh max-w-md items-center bg-paper px-4 py-10 text-ink">
-        <Card padding="md" className="w-full">
-          <p className="text-graphite">Hämtar ditt kvitto…</p>
-        </Card>
+      <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+        <p className="text-[14px] text-graphite">Hämtar ditt kvitto…</p>
       </main>
     );
   }
 
   const total = display.amount + display.tipAmount;
+  const receiptNumber = receiptRefFromPaymentId(paymentId);
+  const dateLabel = formatTodayLabel();
+
   const goToFeedback = () => {
-    // KI-007 will add /feedback?payment=:id. Until then, bounce home so we
-    // don't land on a 404. The path is stable so KI-007 is a drop-in.
     navigate(`/t/${slug}/${tableId}/feedback?payment=${paymentId}`, {
       state: display,
     });
   };
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md bg-paper px-4 py-10 text-ink">
-      <Stack gap={6}>
-        <SuccessCheck reduceMotion={reduceMotion === true} />
+    <main className="flex min-h-dvh flex-col bg-paper px-6 pb-10 pt-14 text-ink">
+      <SuccessCheck reduceMotion={reduceMotion === true} />
 
-        <header className="text-center">
-          <motion.h1
-            className="text-2xl font-semibold tracking-tight"
-            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.3 }}
-          >
-            Tack!
-          </motion.h1>
-          {display.restaurantName ? (
-            <p className="mt-1 text-sm text-graphite">
-              Betalningen till {display.restaurantName} gick igenom.
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-graphite">
-              Betalningen gick igenom.
-            </p>
-          )}
-        </header>
+      <motion.h1
+        className="mt-6 text-center font-serif-italic text-[36px] font-semibold leading-tight"
+        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.3 }}
+      >
+        Tack!
+      </motion.h1>
+      <p className="mt-2 text-center text-[14px] text-graphite">
+        Notan är markerad som betald i kassan.
+      </p>
 
-        <ReceiptCard
-          amount={display.amount}
-          tipAmount={display.tipAmount}
-          total={total}
-          currency={display.currency}
-        />
+      <div className="mt-8">
+        <Card variant="paper" radius="lg" padding="md" className="border-hairline">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-mint">
+                Betalad
+              </div>
+              <div className="mt-0.5 truncate text-[13px] text-graphite">
+                {receiptNumber} · {dateLabel}
+              </div>
+            </div>
+            <Amount value={total} size="xl" />
+          </div>
+        </Card>
+      </div>
 
-        <EmailReceiptForm
-          paymentId={paymentId}
-          onSubmitted={() => setFeedbackArmed(true)}
-        />
+      <EmailReceiptForm
+        paymentId={paymentId}
+        className="mt-5"
+      />
 
-        {feedbackArmed ? (
-          <motion.div
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Button variant="ghost" size="md" block onClick={goToFeedback}>
-              Lämna feedback (30 sek)
-            </Button>
-          </motion.div>
-        ) : null}
-      </Stack>
+      <Button
+        variant="dark"
+        size="lg"
+        block
+        className="mt-5"
+        onClick={goToFeedback}
+        trailingIcon={<ArrowRight size={18} strokeWidth={2.2} />}
+      >
+        Lämna recension
+      </Button>
+
+      <button
+        type="button"
+        onClick={() => navigate(`/t/${slug}/${tableId}`)}
+        className="mt-4 text-center text-[13px] text-graphite underline-offset-4 hover:underline"
+      >
+        Hoppa över
+      </button>
     </main>
-  );
-}
-
-function ReceiptCard({
-  amount,
-  tipAmount,
-  total,
-  currency,
-}: {
-  amount: number;
-  tipAmount: number;
-  total: number;
-  currency: string;
-}) {
-  return (
-    <Card padding="md">
-      <Stack gap={2}>
-        <Row label="Nota" value={formatAmount(amount, currency)} />
-        {tipAmount > 0 ? (
-          <Row label="Dricks" value={formatAmount(tipAmount, currency)} />
-        ) : null}
-        <div className="mt-2 flex items-baseline justify-between border-t border-hairline pt-3">
-          <p className="text-sm text-graphite">Totalt</p>
-          <p className="text-2xl font-semibold tabular-nums">
-            {formatAmount(total, currency)}
-          </p>
-        </div>
-      </Stack>
-    </Card>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <p className="text-sm text-graphite">{label}</p>
-      <p className="tabular-nums">{value}</p>
-    </div>
   );
 }
 
 function EmailReceiptForm({
   paymentId,
-  onSubmitted,
+  className,
 }: {
   paymentId: string;
-  onSubmitted: () => void;
+  className?: string;
 }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'submitting' | 'sent' | 'error'>(
@@ -263,33 +215,27 @@ function EmailReceiptForm({
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (state === 'submitting' || state === 'sent') return;
-    // Minimal email validation — server is authoritative.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setState('error');
       return;
     }
     setState('submitting');
     try {
-      // Endpoint lands in a follow-up brief — we fire-and-forget on a
-      // best-effort basis so the success experience is never blocked.
       await fetch('/api/receipts/email', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ payment_id: paymentId, email }),
       }).catch(() => null);
       setState('sent');
-      onSubmitted();
     } catch {
-      // Never hard-fail the happy path on receipt email.
       setState('sent');
-      onSubmitted();
     }
   };
 
   if (state === 'sent') {
     return (
-      <Card padding="md">
-        <p className="text-center text-sm text-graphite">
+      <Card variant="shell" radius="lg" padding="sm" className={className}>
+        <p className="py-1 text-center text-[13px] text-graphite">
           Kvitto på väg till <span className="font-medium text-ink">{email}</span>.
         </p>
       </Card>
@@ -297,84 +243,99 @@ function EmailReceiptForm({
   }
 
   return (
-    <Card padding="md">
-      <form onSubmit={onSubmit} noValidate>
-        <Stack gap={3}>
-          <label className="text-sm font-medium" htmlFor="receipt-email">
-            Vill du ha kvitto på mail?
-          </label>
-          <Input
-            id="receipt-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="namn@exempel.se"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (state === 'error') setState('idle');
-            }}
-            aria-invalid={state === 'error'}
-            aria-describedby={state === 'error' ? 'receipt-email-error' : undefined}
-          />
-          {state === 'error' ? (
-            <p id="receipt-email-error" className="text-sm text-accent">
-              Kolla mailadressen och försök igen.
-            </p>
-          ) : null}
-          <Button
-            variant="secondary"
-            size="md"
-            block
-            type="submit"
-            disabled={state === 'submitting' || email.length === 0}
-          >
-            {state === 'submitting' ? 'Skickar…' : 'Skicka kvitto'}
-          </Button>
-        </Stack>
-      </form>
-    </Card>
+    <form onSubmit={onSubmit} noValidate className={className}>
+      <div
+        className={cn(
+          'flex items-center gap-2 rounded-full border bg-paper pr-1.5 pl-4 py-1.5',
+          state === 'error' ? 'border-accent' : 'border-hairline',
+        )}
+      >
+        <Mail size={16} strokeWidth={1.8} className="shrink-0 text-graphite" />
+        <input
+          id="receipt-email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="din@email.se"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (state === 'error') setState('idle');
+          }}
+          aria-invalid={state === 'error'}
+          aria-label="Mailadress för kvitto"
+          className="flex-1 bg-transparent text-[14px] text-ink placeholder:text-graphite focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={state === 'submitting' || email.length === 0}
+          className={cn(
+            'rounded-full px-4 py-2 text-[13px] font-semibold transition-colors',
+            'disabled:pointer-events-none disabled:opacity-50',
+            email.length > 0
+              ? 'bg-ink text-paper hover:brightness-125'
+              : 'bg-hairline text-graphite',
+          )}
+        >
+          {state === 'submitting' ? '…' : 'Skicka'}
+        </button>
+      </div>
+      {state === 'error' ? (
+        <p id="receipt-email-error" role="alert" className="mt-2 text-[12px] text-accent">
+          Kolla mailadressen och försök igen.
+        </p>
+      ) : null}
+    </form>
   );
 }
 
+/** Render a receipt reference from the payment id ("KV-0042" style). */
+function receiptRefFromPaymentId(paymentId: string): string {
+  const last4 = paymentId.slice(-4).toUpperCase().padStart(4, '0');
+  return `KV-${last4}`;
+}
+
+function formatTodayLabel(): string {
+  try {
+    return new Intl.DateTimeFormat('sv-SE', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Europe/Stockholm',
+    }).format(new Date());
+  } catch {
+    return '';
+  }
+}
+
 /**
- * Animated checkmark — draws in a circle then strokes the tick. SVG only,
- * no PNG, so it stays crisp and < 1KB. Framer drives the animation with
- * `pathLength`.
+ * Mint check on mint-tint circle. Draws in on mount with a spring, then
+ * strokes the tick path. Respects prefers-reduced-motion.
  */
 function SuccessCheck({ reduceMotion }: { reduceMotion: boolean }) {
   const drawTransition = reduceMotion
     ? { duration: 0 }
-    : { duration: 0.6, ease: 'easeOut' as const };
+    : { duration: 0.55, ease: 'easeOut' as const };
   return (
     <motion.div
-      className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-accent/10"
+      className="mx-auto flex h-24 w-24 items-center justify-center rounded-full"
+      style={{ backgroundColor: 'var(--color-mint)' }}
       initial={reduceMotion ? false : { scale: 0.6, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
       aria-hidden="true"
     >
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-        <motion.circle
-          cx="28"
-          cy="28"
-          r="24"
-          stroke="var(--color-accent)"
-          strokeWidth="3"
-          initial={reduceMotion ? false : { pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={drawTransition}
-        />
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
         <motion.path
-          d="M17 29 L25 37 L40 20"
-          stroke="var(--color-accent)"
+          d="M12 22 L19 30 L32 15"
+          stroke="white"
           strokeWidth="3.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"
           initial={reduceMotion ? false : { pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ ...drawTransition, delay: reduceMotion ? 0 : 0.35 }}
+          transition={{ ...drawTransition, delay: reduceMotion ? 0 : 0.15 }}
         />
       </svg>
     </motion.div>

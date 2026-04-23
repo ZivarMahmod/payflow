@@ -29,6 +29,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ArrowRight } from 'lucide-react';
 import { Button, Card, Stack } from '@flowpay/ui';
 
 import type {
@@ -40,6 +41,7 @@ import { getOrder, orderQueryKey } from '../api/orders';
 import { createSplit } from '../api/splits';
 import { OrderError } from '../components/OrderError';
 import { OrderSkeleton } from '../components/OrderSkeleton';
+import { ScreenHeader } from '../components/ScreenHeader';
 import {
   SplitEqual,
   SPLIT_EQUAL_MAX_PARTS,
@@ -196,7 +198,9 @@ function SplitView({
     return (
       <FallbackShell>
         <Stack gap={3}>
-          <h1 className="text-2xl font-semibold">Notan är betald</h1>
+          <h1 className="font-serif-italic text-[28px] font-semibold leading-tight">
+            Notan är betald
+          </h1>
           <p className="text-graphite">
             Någon vid bordet betalade medan du var på den här sidan.
             Vi skickar dig tillbaka.
@@ -273,141 +277,119 @@ function SplitView({
     (statusQuery.data?.active_splits.length ?? 0) - (createMutation.isPending ? 1 : 0),
   );
 
-  return (
-    <main className="mx-auto min-h-dvh max-w-md bg-paper px-4 py-6 pb-40 text-ink">
-      <header className="mb-6">
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              `/t/${slug}/${tableId}?order=${encodeURIComponent(token)}`,
-            )
-          }
-          className="text-sm text-graphite underline-offset-4 hover:underline"
-          aria-label="Tillbaka till notan"
-        >
-          ← Tillbaka
-        </button>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight">Splitta notan</h1>
-        <p className="mt-1 text-sm text-graphite">
-          {order.restaurant.name} · Bord {order.table.number ?? '—'}
-        </p>
-      </header>
+  const modeTitle =
+    mode === null
+      ? 'Hur vill ni splitta?'
+      : mode === 'equal'
+        ? 'Lika'
+        : mode === 'items'
+          ? 'Välj det du beställde'
+          : 'Eget belopp';
+  const modeSubtitle =
+    mode === null
+      ? `Att betala: ${formatAmount(remaining, order.currency)}`
+      : mode === 'items'
+        ? `${itemIndexes.length} rader valda`
+        : mode === 'portion'
+          ? 'Dra för att välja din del'
+          : `${formatAmount(remaining, order.currency)} totalt · ${otherActiveCount > 0 ? `${otherActiveCount} annan betalning pågår` : 'dela jämnt'}`;
 
-      <RemainingStrip
-        total={order.total}
-        remaining={remaining}
-        currency={order.currency}
-        otherActiveCount={otherActiveCount}
+  return (
+    <main className="flex min-h-dvh flex-col bg-paper pb-10 text-ink">
+      <ScreenHeader
+        onBack={() =>
+          mode === null
+            ? navigate(`/t/${slug}/${tableId}?order=${encodeURIComponent(token)}`)
+            : setMode(null)
+        }
+        totalSteps={5}
+        step={mode === null ? 1 : 2}
       />
 
-      <div className="mt-6">
-        <SplitModeSelector
-          value={mode}
-          onChange={setMode}
-          disabled={createMutation.isPending}
-        />
+      <div className="px-6 pt-5">
+        <h1 className="font-serif-italic text-[30px] font-semibold leading-tight text-ink">
+          {modeTitle}
+        </h1>
+        <p className="mt-1 text-[13px] text-graphite">{modeSubtitle}</p>
       </div>
 
-      <motion.div
-        key={mode ?? 'none'}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22 }}
-        className="mt-6"
-      >
-        {mode === 'equal' ? (
-          <SplitEqual
-            total={order.total}
-            remaining={remaining}
-            currency={order.currency}
-            parts={equalParts}
-            partIndex={equalPartIndex}
-            onChangeParts={setEqualParts}
-            onChangePartIndex={setEqualPartIndex}
-            onComputedAmount={setEqualAmount}
+      <div className="mt-6 px-5">
+        {mode === null ? (
+          <SplitModeSelector
+            value={mode}
+            onChange={setMode}
+            disabled={createMutation.isPending}
           />
-        ) : null}
-        {mode === 'portion' ? (
-          <SplitPortion
-            remaining={remaining}
-            currency={order.currency}
-            value={portionAmount}
-            onChange={setPortionAmount}
-          />
-        ) : null}
-        {mode === 'items' ? (
-          <SplitItems
-            items={order.items}
-            currency={order.currency}
-            selected={itemIndexes}
-            onChange={setItemIndexes}
-            remaining={remaining}
-            onComputedAmount={setItemsAmount}
-          />
-        ) : null}
-      </motion.div>
+        ) : (
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+          >
+            {mode === 'equal' ? (
+              <SplitEqual
+                total={order.total}
+                remaining={remaining}
+                currency={order.currency}
+                parts={equalParts}
+                partIndex={equalPartIndex}
+                onChangeParts={setEqualParts}
+                onChangePartIndex={setEqualPartIndex}
+                onComputedAmount={setEqualAmount}
+              />
+            ) : null}
+            {mode === 'portion' ? (
+              <SplitPortion
+                remaining={remaining}
+                currency={order.currency}
+                value={portionAmount}
+                onChange={setPortionAmount}
+              />
+            ) : null}
+            {mode === 'items' ? (
+              <SplitItems
+                items={order.items}
+                currency={order.currency}
+                selected={itemIndexes}
+                onChange={setItemIndexes}
+                remaining={remaining}
+                onComputedAmount={setItemsAmount}
+                total={order.total}
+              />
+            ) : null}
+          </motion.div>
+        )}
+      </div>
 
       {createMutation.isError ? (
-        <div className="mt-6">
+        <div className="mt-6 px-5">
           <SplitErrorNotice error={createMutation.error} />
         </div>
       ) : null}
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-paper via-paper/95 to-transparent pb-[env(safe-area-inset-bottom)] pt-6">
-        <div className="pointer-events-auto mx-auto max-w-md px-4">
+      {mode !== null ? (
+        <div className="mt-8 px-5">
           <Button
             variant="primary"
             size="lg"
             block
             onClick={submit}
             disabled={!canSubmit}
+            trailingIcon={<ArrowRight size={18} strokeWidth={2.2} />}
             aria-label={
-              mode && activeAmount > 0
-                ? `Betala ${formatAmount(activeAmount, order.currency)} med Swish`
-                : 'Välj splittläge för att fortsätta'
+              activeAmount > 0
+                ? `Fortsätt till betalning ${formatAmount(activeAmount, order.currency)}`
+                : 'Justera för att fortsätta'
             }
           >
             {createMutation.isPending
               ? 'Startar…'
-              : mode && activeAmount > 0
-                ? `Betala ${formatAmount(activeAmount, order.currency)}`
-                : 'Välj splittläge'}
+              : 'Fortsätt'}
           </Button>
         </div>
-      </div>
+      ) : null}
     </main>
-  );
-}
-
-function RemainingStrip({
-  total,
-  remaining,
-  currency,
-  otherActiveCount,
-}: {
-  total: number;
-  remaining: number;
-  currency: string;
-  otherActiveCount: number;
-}) {
-  return (
-    <Card padding="md">
-      <Stack gap={2}>
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm text-graphite">Kvar att betala</p>
-          <p className="text-2xl font-semibold tabular-nums">
-            {formatAmount(remaining, currency)}
-          </p>
-        </div>
-        <p className="text-xs text-graphite">
-          av {formatAmount(total, currency)} totalt
-          {otherActiveCount > 0
-            ? ` · ${otherActiveCount} annan betalning pågår vid bordet`
-            : ''}
-        </p>
-      </Stack>
-    </Card>
   );
 }
 
@@ -437,8 +419,8 @@ function SplitErrorNotice({ error }: { error: unknown }) {
 
 function FallbackShell({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md items-center bg-paper px-4 py-10 text-ink">
-      <Card padding="md" className="w-full">
+    <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+      <Card variant="paper" radius="lg" padding="lg" className="w-full max-w-sm">
         <Stack gap={4}>{children}</Stack>
       </Card>
     </main>

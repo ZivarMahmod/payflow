@@ -4,24 +4,80 @@
  * Order matters:
  *  1. Import Tailwind (generates the utility layer).
  *  2. Import FlowPay tokens (augments `@theme` with brand colors, radii, etc.).
- *
- * Components should ONLY reference token utilities (bg-paper, text-ink,
- * ring-accent, rounded-lg, h-touch-md). No hex codes in TSX.
  */
 
 @import "tailwindcss";
 @import "@flowpay/ui/tokens.css";
 
-/* App-level defaults: inherit tokens so root layout shells don't have to. */
+/* App-level defaults.
+   The outer body is the warm espresso frame from the mocks. In-card
+   surfaces explicitly set `bg-paper` so they render on the cream
+   surface regardless of the frame. */
 html {
   font-family: var(--font-sans);
   color: var(--color-ink);
-  background: var(--color-paper);
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv11";
 }
 
-/* Respect user's reduced-motion preference — framer-motion also honors this. */
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-bg);
+}
+
+/* The guest flow is a phone-first vertical scroll on cream paper.
+   Root shell is centered, max-width phone-ish for desktop preview. */
+#root {
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  background: var(--color-bg);
+}
+
+/* Utility: the main phone column — cream card on the warm frame. */
+.phone-shell {
+  width: 100%;
+  max-width: 440px;
+  min-height: 100dvh;
+  background: var(--color-paper);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Editorial display serif class used by headings. */
+.font-serif {
+  font-family: var(--font-serif);
+  font-optical-sizing: auto;
+  font-feature-settings: "ss01";
+}
+
+.font-serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-optical-sizing: auto;
+}
+
+/* The warm peach radial glow used on the welcome screen. */
+.glow-blush {
+  background: radial-gradient(
+    ellipse at top right,
+    rgba(244, 100, 36, 0.18) 0%,
+    rgba(255, 229, 217, 0.25) 18%,
+    transparent 55%
+  );
+}
+
+/* Dotted divider used between bill items and receipt rows. */
+.divider-dotted {
+  border: 0;
+  border-top: 1px dashed var(--color-hairline);
+  margin: 0;
+}
+
+/* Respect reduced-motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

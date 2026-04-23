@@ -1,41 +1,28 @@
 /**
- * SplitItems — "Välj mina rätter" picker.
+ * SplitItems — "Välj rader" picker.
  *
- * UX:
- *   - List of every line on the bill, each a tap-target toggle.
- *   - Per-line quantity display stays identical to the bill view so the
- *     guest recognises the layout.
- *   - Selected lines are sum-displayed as the "Din del" big number.
- *
- * Server re-validation:
- *   - The POST body carries `item_indexes` + `amount`. The server re-sums
- *     from the cached `items[]` and rejects mismatches. We still send
- *     `amount` because it's the client's "this is what I think I owe"
- *     intent — useful both as a client-side guard and as a tamper signal
- *     for the server-side log.
- *
- * Accessibility:
- *   - Each row is a button with aria-pressed (see SplitModeSelector for
- *     rationale on choosing buttons over checkboxes).
- *   - High-contrast border when selected; checkmark glyph only as a hint.
+ * Checkbox list of bill rows; unselected rows fade to 55%, selected rows
+ * stay full-opacity with an orange filled checkbox. A dark "DIN DEL"
+ * summary bar hugs the bottom with the running sum.
  */
 
+import { Check } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
-import { Card, Stack } from '@flowpay/ui';
+import { Card, cn } from '@flowpay/ui';
 
 import type { OrderResponseItem } from '@flowpay/schemas';
 
+import { Amount } from './Amount';
 import { formatAmount } from '../lib/format';
 
 interface SplitItemsProps {
   items: OrderResponseItem[];
   currency: string;
-  /** Selected 0-based indexes into `items`. Order-independent set. */
   selected: number[];
   onChange: (selected: number[]) => void;
   remaining: number;
-  /** Mirror the sum up to the parent so the submit button can show it. */
   onComputedAmount: (amount: number) => void;
+  total?: number;
 }
 
 export function SplitItems({
@@ -45,9 +32,8 @@ export function SplitItems({
   onChange,
   remaining,
   onComputedAmount,
+  total,
 }: SplitItemsProps) {
-  // Use a set for O(1) membership; order doesn't matter server-side
-  // because the server sorts before summing.
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
   const computedAmount = useMemo(() => {
@@ -70,53 +56,52 @@ export function SplitItems({
     const next = new Set(selectedSet);
     if (next.has(idx)) next.delete(idx);
     else next.add(idx);
-    // Keep ascending order so the POST body is deterministic in logs.
     onChange([...next].sort((a, b) => a - b));
   };
 
   return (
-    <Stack gap={4}>
-      <Card padding="none">
+    <div className="space-y-4">
+      <Card variant="paper" padding="none" radius="lg">
         <ul
           role="group"
           aria-label="Välj vilka rader du betalar för"
-          className="divide-y divide-hairline"
+          className="px-5"
         >
           {items.map((line, idx) => {
             const active = selectedSet.has(idx);
             return (
-              <li key={`${line.name}-${idx}`}>
+              <li
+                key={`${line.name}-${idx}`}
+                className={idx > 0 ? 'border-t border-dashed border-hairline' : ''}
+              >
                 <button
                   type="button"
                   onClick={() => toggle(idx)}
                   aria-pressed={active}
-                  className={
-                    active
-                      ? 'flex w-full items-center gap-3 bg-ink/5 px-4 py-3 text-left transition-colors'
-                      : 'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-ink/5'
-                  }
+                  className={cn(
+                    'flex w-full items-start gap-4 py-3.5 text-left',
+                    'transition-[opacity,background-color] duration-150',
+                    !active && 'opacity-55',
+                  )}
                 >
                   <span
-                    aria-hidden
-                    className={
+                    aria-hidden="true"
+                    className={cn(
+                      'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border',
                       active
-                        ? 'flex h-6 w-6 flex-none items-center justify-center rounded-md bg-ink text-paper'
-                        : 'flex h-6 w-6 flex-none items-center justify-center rounded-md border border-hairline'
-                    }
+                        ? 'border-accent bg-accent text-white'
+                        : 'border-hairline bg-paper',
+                    )}
                   >
-                    {active ? '✓' : ''}
+                    {active ? <Check size={13} strokeWidth={3} /> : null}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{line.name}</span>
-                    {line.qty > 1 ? (
-                      <span className="block text-sm text-graphite">
-                        {line.qty} × {formatAmount(line.unitPrice, currency)}
-                      </span>
-                    ) : null}
+                  <span className="mt-0.5 w-7 shrink-0 text-sm font-medium text-graphite">
+                    {line.qty}×
                   </span>
-                  <span className="tabular-nums font-medium">
-                    {formatAmount(line.lineTotal, currency)}
+                  <span className="min-w-0 flex-1 text-[15px] font-semibold leading-tight text-ink">
+                    {line.name}
                   </span>
+                  <Amount value={line.lineTotal} size="md" className="shrink-0" />
                 </button>
               </li>
             );
@@ -124,26 +109,37 @@ export function SplitItems({
         </ul>
       </Card>
 
-      <Card padding="md">
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-sm text-graphite">Din del</p>
-          <p className="text-3xl font-semibold tabular-nums">
-            {formatAmount(computedAmount, currency)}
-          </p>
+      <Card variant="dark" padding="md" radius="lg">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
+              Din del
+            </div>
+            {typeof total === 'number' ? (
+              <div className="mt-0.5 text-[12px] text-white/55">
+                av {formatAmount(total, currency)}
+              </div>
+            ) : null}
+          </div>
+          <span className="whitespace-nowrap tabular-nums">
+            <span className="text-[22px] font-serif font-semibold text-white">
+              {formatAmount(computedAmount, currency, { omitCurrency: true })}
+            </span>
+            <span className="ml-0.5 text-[13px] font-normal text-white/60">kr</span>
+          </span>
         </div>
         {selected.length === 0 ? (
-          <p className="mt-2 text-xs text-graphite">
+          <p className="mt-2 text-[12px] text-white/60">
             Markera minst en rad för att fortsätta.
           </p>
         ) : null}
         {wouldOverpay ? (
-          <p role="alert" className="mt-2 text-xs text-graphite">
+          <p role="alert" className="mt-2 text-[12px] text-white/80">
             Summan överstiger det som är kvar ({formatAmount(remaining, currency)}).
-            Avmarkera några rader.
           </p>
         ) : null}
       </Card>
-    </Stack>
+    </div>
   );
 }
 
