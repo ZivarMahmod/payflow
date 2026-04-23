@@ -51,3 +51,6 @@ _tmp_*
 # Sandbox cruft accumulated during Cowork egress outages
 STATUS-GIT-CONFLICT*.md
 STATUS-ALL-BLOCKED*.md
+
+# Personal local notes
+URL-STRUKTUR.md
