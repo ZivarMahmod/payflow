@@ -6,40 +6,60 @@ import { cn } from '../cn';
 /**
  * Surface primitive.
  *
- * Used for the bill, payment confirmation, feedback form, etc.
- * Keep the visual language restrained — Awwwards-level means the
- * hierarchy is established by typography and spacing, not by
- * aggressive shadows or gradients.
+ * Variants map to the guest-flow mocks:
+ *  - paper    : default cream card with hairline border (bill, split options)
+ *  - dark     : black selected state (chosen tip card, split summary "DIN DEL")
+ *  - shell    : slightly warmer tint for the footer summary (Din del / Att betala)
  */
-const cardStyles = cva(['bg-paper text-ink', 'border border-hairline', 'rounded-lg'], {
-  variants: {
-    padding: {
-      none: 'p-0',
-      sm: 'p-4',
-      md: 'p-6',
-      lg: 'p-8',
+const cardStyles = cva(
+  ['text-ink'],
+  {
+    variants: {
+      variant: {
+        paper: ['bg-paper', 'border border-hairline'],
+        dark: ['bg-dark text-white', 'border border-dark'],
+        shell: ['bg-shell', 'border border-hairline'],
+      },
+      padding: {
+        none: 'p-0',
+        sm: 'p-4',
+        md: 'p-5',
+        lg: 'p-6',
+      },
+      elevation: {
+        flat: '',
+        raised: 'shadow-paper',
+        floating: 'shadow-raised',
+      },
+      radius: {
+        md: 'rounded-xl',
+        lg: 'rounded-2xl',
+        xl: 'rounded-[28px]',
+      },
     },
-    elevation: {
-      flat: '',
-      raised: 'shadow-[0_1px_2px_0_rgb(0_0_0_/_0.04),_0_4px_12px_-4px_rgb(0_0_0_/_0.06)]',
+    defaultVariants: {
+      variant: 'paper',
+      padding: 'md',
+      elevation: 'flat',
+      radius: 'lg',
     },
   },
-  defaultVariants: {
-    padding: 'md',
-    elevation: 'flat',
-  },
-});
+);
 
 export interface CardProps
   extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof cardStyles> {}
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { className, padding, elevation, children, ...rest },
+  { className, variant, padding, elevation, radius, children, ...rest },
   ref,
 ) {
   return (
-    <div ref={ref} className={cn(cardStyles({ padding, elevation }), className)} {...rest}>
+    <div
+      ref={ref}
+      className={cn(cardStyles({ variant, padding, elevation, radius }), className)}
+      {...rest}
+    >
       {children}
     </div>
   );
