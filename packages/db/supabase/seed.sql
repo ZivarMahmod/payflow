@@ -49,7 +49,11 @@ on conflict (id) do nothing;
 
 -- ─── 1 open order on table 1 ───────────────────────────────────────────────
 -- Items jsonb shape matches packages/schemas/src/order.ts cachedOrderItemSchema.
--- Guest URL: http://localhost:5173/t/test-bistro/1?order=test-order-token-abc123
+-- The `order_token` is the bill's secret key, NOT a table label. It must be
+-- unguessable (min 8 chars per orderTokenParamSchema; random in production
+-- via encode(gen_random_bytes(16), 'hex')). The user-visible "table" lives
+-- in the URL path segment (/t/test-bistro/Bord1/...) — that's cosmetic.
+-- Guest URL: http://localhost:5173/t/test-bistro/Bord1?order=bord-1-dev
 insert into public.orders_cache
     (id, restaurant_id, location_id, table_id,
      pos_order_id, pos_type, order_token,
@@ -61,7 +65,7 @@ values (
     '33333333-3333-3333-3333-333333333301',
     'SEED-001',
     'onslip',
-    'test-order-token-abc123',
+    'bord-1-dev',
     485.00,
     'SEK',
     '[
